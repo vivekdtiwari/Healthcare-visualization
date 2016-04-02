@@ -20,5 +20,13 @@
   "bugs": {
     "url": "https://github.com/vivekdtiwari/Healthcare-visualization/issues"
   },
-  "homepage": "https://github.com/vivekdtiwari/Healthcare-visualization#readme"
+  "homepage": "https://github.com/vivekdtiwari/Healthcare-visualization#readme",
+  "devDependencies": {
+    "gulp": "^3.9.1",
+    "gulp-nodemon": "^2.0.6",
+    "gulp-react": "^3.1.0",
+    "gulp-watch": "^4.3.5",
+    "http": "0.0.0",
+    "react": "^0.14.8"
+  }
 }

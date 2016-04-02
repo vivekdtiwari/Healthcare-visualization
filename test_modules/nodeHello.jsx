@@ -11,6 +11,7 @@ http.createServer(function(req,res){
         </head>
         <body>
           nodeHello.jsx compiled into nodeHello.js by hand on server. I renamed js file to jsx uncertain of usage.
+          Modification
         </body>
       </html>
     )

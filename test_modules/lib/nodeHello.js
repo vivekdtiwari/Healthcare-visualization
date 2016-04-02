@@ -10,7 +10,8 @@ http.createServer(function(req,res){
           React.createElement("title", null, "Hello World :) ")
         ), 
         React.createElement("body", null, 
-          "nodeHello.jsx compiled into nodeHello.js by hand on server. I renamed js file to jsx uncertain of usage."
+          "nodeHello.jsx compiled into nodeHello.js by hand on server. I renamed js file to jsx uncertain of usage." + ' ' +
+          "Modification"
         )
       )
     )
