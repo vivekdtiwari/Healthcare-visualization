@@ -1,21 +1,35 @@
-var http = require('http');
-var React = require('react');
+var http = require('http')
+  , React = require('react')
+  , HelloWorld = require('./Components/HelloWorld')
+  , fs = require('fs')
 
-http.createServer(function(req,res){
-  res.writeHead({"content-type":"text/html"});
-  res.end(
-    React.renderToString(
-      <html>
-        <head>
-          <title>Hello World :) </title>
-        </head>
-        <body>
-          nodeHello.jsx compiled into nodeHello.js by hand on server. I renamed js file to jsx uncertain of usage.
-          Modification
-        </body>
-      </html>
-    )
-  )
-}).listen(8000);
 
-console.log("Server running at http://localhost:8000/");
+  http.createServer(function (req, res) {
+    res.writeHead(200, {'Content-Type': 'text/html'})
+    var body = React.renderToString(
+      <body>
+        <HelloWorld from="index.jsx on the server" />
+        <div id="reactContainer" />
+      </body>)
+
+    res.end('<html><head><title>Hello World</title>' +
+      '<script src="//fb.me/react-0.13.1.js"></script>' +
+      '</head>' +
+      '<script>' +
+      fs.readFileSync('./Components/Timestamp.js') +
+      '</script>' +
+      body +
+      '<script>' +
+      'var timestampInstance = React.createFactory(Timestamp)();' +
+      'var timestampElement = React.render(timestampInstance, ' +
+      '  document.getElementById("reactContainer"));' +
+      'setInterval(function() { ' +
+      '  timestampElement.setState({ ' +
+      '    date: "Updated through setState: " + ' +
+      '        new Date().toString() }) }, 500)' +
+      '</script>' +
+      '</html>'
+      )
+
+}).listen(8000)
+console.log('Server running at http://localhost:8000/')
