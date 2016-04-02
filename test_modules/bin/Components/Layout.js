@@ -4,15 +4,17 @@ module.exports = React.createClass({displayName: "exports",
     return (
       React.createElement("html", null, 
           React.createElement("head", null, 
+              React.createElement("link", {href: "https://bootswatch.com/paper/bootstrap.min.css", type: "text/css", rel: "stylesheet"}), 
               React.createElement("title", null, "Hello World")
           ), 
           React.createElement("body", null, 
               React.createElement("div", {id: "reactContainer"}), 
               React.createElement("div", {id: "reactHelloContainer", 
-                  dangerouslySetInnerHTML:  {__html: this.props.content} })
+                  dangerouslySetInnerHTML:  {__html: this.props.content} }), 
+              React.createElement("div", {id: "textButtonId"})
           ), 
           React.createElement("script", {src: "/pages/index.js"})
-      )      
+      )
     )
   }
 })

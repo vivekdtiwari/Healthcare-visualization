@@ -15,7 +15,7 @@ app.get('/', function (req, res) {
     <HelloWorld from = "server.jsx, running on the server" />
   )
   var html = React.renderToStaticMarkup(
-    <Layout content={content} />
+    <Layout content={content}/>
   )
 
     res.end(html)

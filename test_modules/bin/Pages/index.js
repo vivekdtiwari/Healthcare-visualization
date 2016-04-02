@@ -20,7 +20,7 @@ module.exports = React.createClass({displayName: "exports",
   }
 })
 
-},{"react":160}],2:[function(require,module,exports){
+},{"react":178}],2:[function(require,module,exports){
 var React = require('react')
 
 module.exports = React.createClass({displayName: "exports",
@@ -34,10 +34,57 @@ module.exports = React.createClass({displayName: "exports",
   }
 })
 
-},{"react":160}],3:[function(require,module,exports){
+},{"react":178}],3:[function(require,module,exports){
+var React = require('react')
+var HBase = require('node-thrift-hbase');
+
+k
+
+module.exports = React.createClass({displayName: "exports",
+  getInitialState: function() {
+    return {liked: false};
+  },
+  handleClick: function(event){
+    this.setState({liked: !this.state.liked});
+    var tableName = document.getElementById('hbaseTableName').value;
+    var columnFamily = document.getElementById('columnFamily').value;
+    var columnName = document.getElementById('columnName').value;
+    var rowNum = document.getElementById('rowNum').value;
+    var get = hbaseClient.Get('1');
+    get.add('cf','a');
+
+  },
+  render: function() {
+    var text = this.state.liked ? 'like' : 'haven\'t liked';
+    var buttText = this.state.liked ? 'Unlike':'Like';
+    return (
+      React.createElement("div", {id: "meh", className: "container"}, 
+      React.createElement("div", {className: "form-group"}, 
+      React.createElement("input", {type: "text", className: "form-control", placeholder: "Enter HBase table name.", id: "hbaseTableName"})
+      ), 
+      React.createElement("div", {className: "form-group"}, 
+      React.createElement("input", {type: "text", className: "form-control", placeholder: "Select Column Family from table.", id: "columnFamily"})
+      ), 
+      React.createElement("div", {className: "form-group"}, 
+      React.createElement("input", {type: "text", className: "form-control", placeholder: "Select Column from columnFamily", id: "columnName"})
+      ), 
+      React.createElement("div", {className: "form-group"}, 
+      React.createElement("input", {type: "text", className: "form-control", placeholder: "Select row number to retreive.", id: "rowNum"})
+      ), 
+      React.createElement("p", null, 
+        "You ", text, " this. Click to toggle."
+      ), 
+      React.createElement("button", {className: "btn btn-default", onClick: this.handleClick}, buttText)
+      )
+    );
+  }
+})
+
+},{"node-thrift-hbase":42,"react":178}],4:[function(require,module,exports){
 var React = require('react')
 var HelloWorld = require('../Components/HelloWorld')
 var Timestamp = require('../Components/Timestamp')
+var TextButton = require('../Components/textButt')
 
 var helloWorldElement = React.render(
   React.createElement(HelloWorld, {from: "server.jsx, running on the server"}),
@@ -49,6 +96,11 @@ var timestampElement = React.render(
   document.getElementById('reactContainer')
 )
 
+var textBoxElement = React.render(
+  React.createElement(TextButton, null),
+  document.getElementById('textButtonId')
+)
+
 setInterval(function(){
   helloWorldElement.setState({
     from:"index.jsx, transformed, bundled, and running on client"
@@ -57,9 +109,1890 @@ setInterval(function(){
     date:"Updated through setState. "
     + new Date().toString()
   })
+
 }, 500);
 
-},{"../Components/HelloWorld":1,"../Components/Timestamp":2,"react":160}],4:[function(require,module,exports){
+},{"../Components/HelloWorld":1,"../Components/Timestamp":2,"../Components/textButt":3,"react":178}],5:[function(require,module,exports){
+'use strict'
+
+exports.toByteArray = toByteArray
+exports.fromByteArray = fromByteArray
+
+var lookup = []
+var revLookup = []
+var Arr = typeof Uint8Array !== 'undefined' ? Uint8Array : Array
+
+function init () {
+  var code = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+  for (var i = 0, len = code.length; i < len; ++i) {
+    lookup[i] = code[i]
+    revLookup[code.charCodeAt(i)] = i
+  }
+
+  revLookup['-'.charCodeAt(0)] = 62
+  revLookup['_'.charCodeAt(0)] = 63
+}
+
+init()
+
+function toByteArray (b64) {
+  var i, j, l, tmp, placeHolders, arr
+  var len = b64.length
+
+  if (len % 4 > 0) {
+    throw new Error('Invalid string. Length must be a multiple of 4')
+  }
+
+  // the number of equal signs (place holders)
+  // if there are two placeholders, than the two characters before it
+  // represent one byte
+  // if there is only one, then the three characters before it represent 2 bytes
+  // this is just a cheap hack to not do indexOf twice
+  placeHolders = b64[len - 2] === '=' ? 2 : b64[len - 1] === '=' ? 1 : 0
+
+  // base64 is 4/3 + up to two characters of the original data
+  arr = new Arr(len * 3 / 4 - placeHolders)
+
+  // if there are placeholders, only get up to the last complete 4 chars
+  l = placeHolders > 0 ? len - 4 : len
+
+  var L = 0
+
+  for (i = 0, j = 0; i < l; i += 4, j += 3) {
+    tmp = (revLookup[b64.charCodeAt(i)] << 18) | (revLookup[b64.charCodeAt(i + 1)] << 12) | (revLookup[b64.charCodeAt(i + 2)] << 6) | revLookup[b64.charCodeAt(i + 3)]
+    arr[L++] = (tmp >> 16) & 0xFF
+    arr[L++] = (tmp >> 8) & 0xFF
+    arr[L++] = tmp & 0xFF
+  }
+
+  if (placeHolders === 2) {
+    tmp = (revLookup[b64.charCodeAt(i)] << 2) | (revLookup[b64.charCodeAt(i + 1)] >> 4)
+    arr[L++] = tmp & 0xFF
+  } else if (placeHolders === 1) {
+    tmp = (revLookup[b64.charCodeAt(i)] << 10) | (revLookup[b64.charCodeAt(i + 1)] << 4) | (revLookup[b64.charCodeAt(i + 2)] >> 2)
+    arr[L++] = (tmp >> 8) & 0xFF
+    arr[L++] = tmp & 0xFF
+  }
+
+  return arr
+}
+
+function tripletToBase64 (num) {
+  return lookup[num >> 18 & 0x3F] + lookup[num >> 12 & 0x3F] + lookup[num >> 6 & 0x3F] + lookup[num & 0x3F]
+}
+
+function encodeChunk (uint8, start, end) {
+  var tmp
+  var output = []
+  for (var i = start; i < end; i += 3) {
+    tmp = (uint8[i] << 16) + (uint8[i + 1] << 8) + (uint8[i + 2])
+    output.push(tripletToBase64(tmp))
+  }
+  return output.join('')
+}
+
+function fromByteArray (uint8) {
+  var tmp
+  var len = uint8.length
+  var extraBytes = len % 3 // if we have 1 byte left, pad 2 bytes
+  var output = ''
+  var parts = []
+  var maxChunkLength = 16383 // must be multiple of 3
+
+  // go through the array every three bytes, we'll deal with trailing stuff later
+  for (var i = 0, len2 = len - extraBytes; i < len2; i += maxChunkLength) {
+    parts.push(encodeChunk(uint8, i, (i + maxChunkLength) > len2 ? len2 : (i + maxChunkLength)))
+  }
+
+  // pad the end with zeros, but make sure to not forget the extra bytes
+  if (extraBytes === 1) {
+    tmp = uint8[len - 1]
+    output += lookup[tmp >> 2]
+    output += lookup[(tmp << 4) & 0x3F]
+    output += '=='
+  } else if (extraBytes === 2) {
+    tmp = (uint8[len - 2] << 8) + (uint8[len - 1])
+    output += lookup[tmp >> 10]
+    output += lookup[(tmp >> 4) & 0x3F]
+    output += lookup[(tmp << 2) & 0x3F]
+    output += '='
+  }
+
+  parts.push(output)
+
+  return parts.join('')
+}
+
+},{}],6:[function(require,module,exports){
+
+},{}],7:[function(require,module,exports){
+(function (global){
+/*!
+ * The buffer module from node.js, for the browser.
+ *
+ * @author   Feross Aboukhadijeh <feross@feross.org> <http://feross.org>
+ * @license  MIT
+ */
+/* eslint-disable no-proto */
+
+'use strict'
+
+var base64 = require('base64-js')
+var ieee754 = require('ieee754')
+var isArray = require('isarray')
+
+exports.Buffer = Buffer
+exports.SlowBuffer = SlowBuffer
+exports.INSPECT_MAX_BYTES = 50
+Buffer.poolSize = 8192 // not used by this implementation
+
+var rootParent = {}
+
+/**
+ * If `Buffer.TYPED_ARRAY_SUPPORT`:
+ *   === true    Use Uint8Array implementation (fastest)
+ *   === false   Use Object implementation (most compatible, even IE6)
+ *
+ * Browsers that support typed arrays are IE 10+, Firefox 4+, Chrome 7+, Safari 5.1+,
+ * Opera 11.6+, iOS 4.2+.
+ *
+ * Due to various browser bugs, sometimes the Object implementation will be used even
+ * when the browser supports typed arrays.
+ *
+ * Note:
+ *
+ *   - Firefox 4-29 lacks support for adding new properties to `Uint8Array` instances,
+ *     See: https://bugzilla.mozilla.org/show_bug.cgi?id=695438.
+ *
+ *   - Chrome 9-10 is missing the `TypedArray.prototype.subarray` function.
+ *
+ *   - IE10 has a broken `TypedArray.prototype.subarray` function which returns arrays of
+ *     incorrect length in some situations.
+
+ * We detect these buggy browsers and set `Buffer.TYPED_ARRAY_SUPPORT` to `false` so they
+ * get the Object implementation, which is slower but behaves correctly.
+ */
+Buffer.TYPED_ARRAY_SUPPORT = global.TYPED_ARRAY_SUPPORT !== undefined
+  ? global.TYPED_ARRAY_SUPPORT
+  : typedArraySupport()
+
+function typedArraySupport () {
+  try {
+    var arr = new Uint8Array(1)
+    arr.foo = function () { return 42 }
+    return arr.foo() === 42 && // typed array instances can be augmented
+        typeof arr.subarray === 'function' && // chrome 9-10 lack `subarray`
+        arr.subarray(1, 1).byteLength === 0 // ie10 has broken `subarray`
+  } catch (e) {
+    return false
+  }
+}
+
+function kMaxLength () {
+  return Buffer.TYPED_ARRAY_SUPPORT
+    ? 0x7fffffff
+    : 0x3fffffff
+}
+
+/**
+ * The Buffer constructor returns instances of `Uint8Array` that have their
+ * prototype changed to `Buffer.prototype`. Furthermore, `Buffer` is a subclass of
+ * `Uint8Array`, so the returned instances will have all the node `Buffer` methods
+ * and the `Uint8Array` methods. Square bracket notation works as expected -- it
+ * returns a single octet.
+ *
+ * The `Uint8Array` prototype remains unmodified.
+ */
+function Buffer (arg) {
+  if (!(this instanceof Buffer)) {
+    // Avoid going through an ArgumentsAdaptorTrampoline in the common case.
+    if (arguments.length > 1) return new Buffer(arg, arguments[1])
+    return new Buffer(arg)
+  }
+
+  if (!Buffer.TYPED_ARRAY_SUPPORT) {
+    this.length = 0
+    this.parent = undefined
+  }
+
+  // Common case.
+  if (typeof arg === 'number') {
+    return fromNumber(this, arg)
+  }
+
+  // Slightly less common case.
+  if (typeof arg === 'string') {
+    return fromString(this, arg, arguments.length > 1 ? arguments[1] : 'utf8')
+  }
+
+  // Unusual.
+  return fromObject(this, arg)
+}
+
+// TODO: Legacy, not needed anymore. Remove in next major version.
+Buffer._augment = function (arr) {
+  arr.__proto__ = Buffer.prototype
+  return arr
+}
+
+function fromNumber (that, length) {
+  that = allocate(that, length < 0 ? 0 : checked(length) | 0)
+  if (!Buffer.TYPED_ARRAY_SUPPORT) {
+    for (var i = 0; i < length; i++) {
+      that[i] = 0
+    }
+  }
+  return that
+}
+
+function fromString (that, string, encoding) {
+  if (typeof encoding !== 'string' || encoding === '') encoding = 'utf8'
+
+  // Assumption: byteLength() return value is always < kMaxLength.
+  var length = byteLength(string, encoding) | 0
+  that = allocate(that, length)
+
+  that.write(string, encoding)
+  return that
+}
+
+function fromObject (that, object) {
+  if (Buffer.isBuffer(object)) return fromBuffer(that, object)
+
+  if (isArray(object)) return fromArray(that, object)
+
+  if (object == null) {
+    throw new TypeError('must start with number, buffer, array or string')
+  }
+
+  if (typeof ArrayBuffer !== 'undefined') {
+    if (object.buffer instanceof ArrayBuffer) {
+      return fromTypedArray(that, object)
+    }
+    if (object instanceof ArrayBuffer) {
+      return fromArrayBuffer(that, object)
+    }
+  }
+
+  if (object.length) return fromArrayLike(that, object)
+
+  return fromJsonObject(that, object)
+}
+
+function fromBuffer (that, buffer) {
+  var length = checked(buffer.length) | 0
+  that = allocate(that, length)
+  buffer.copy(that, 0, 0, length)
+  return that
+}
+
+function fromArray (that, array) {
+  var length = checked(array.length) | 0
+  that = allocate(that, length)
+  for (var i = 0; i < length; i += 1) {
+    that[i] = array[i] & 255
+  }
+  return that
+}
+
+// Duplicate of fromArray() to keep fromArray() monomorphic.
+function fromTypedArray (that, array) {
+  var length = checked(array.length) | 0
+  that = allocate(that, length)
+  // Truncating the elements is probably not what people expect from typed
+  // arrays with BYTES_PER_ELEMENT > 1 but it's compatible with the behavior
+  // of the old Buffer constructor.
+  for (var i = 0; i < length; i += 1) {
+    that[i] = array[i] & 255
+  }
+  return that
+}
+
+function fromArrayBuffer (that, array) {
+  array.byteLength // this throws if `array` is not a valid ArrayBuffer
+
+  if (Buffer.TYPED_ARRAY_SUPPORT) {
+    // Return an augmented `Uint8Array` instance, for best performance
+    that = new Uint8Array(array)
+    that.__proto__ = Buffer.prototype
+  } else {
+    // Fallback: Return an object instance of the Buffer class
+    that = fromTypedArray(that, new Uint8Array(array))
+  }
+  return that
+}
+
+function fromArrayLike (that, array) {
+  var length = checked(array.length) | 0
+  that = allocate(that, length)
+  for (var i = 0; i < length; i += 1) {
+    that[i] = array[i] & 255
+  }
+  return that
+}
+
+// Deserialize { type: 'Buffer', data: [1,2,3,...] } into a Buffer object.
+// Returns a zero-length buffer for inputs that don't conform to the spec.
+function fromJsonObject (that, object) {
+  var array
+  var length = 0
+
+  if (object.type === 'Buffer' && isArray(object.data)) {
+    array = object.data
+    length = checked(array.length) | 0
+  }
+  that = allocate(that, length)
+
+  for (var i = 0; i < length; i += 1) {
+    that[i] = array[i] & 255
+  }
+  return that
+}
+
+if (Buffer.TYPED_ARRAY_SUPPORT) {
+  Buffer.prototype.__proto__ = Uint8Array.prototype
+  Buffer.__proto__ = Uint8Array
+  if (typeof Symbol !== 'undefined' && Symbol.species &&
+      Buffer[Symbol.species] === Buffer) {
+    // Fix subarray() in ES2016. See: https://github.com/feross/buffer/pull/97
+    Object.defineProperty(Buffer, Symbol.species, {
+      value: null,
+      configurable: true
+    })
+  }
+} else {
+  // pre-set for values that may exist in the future
+  Buffer.prototype.length = undefined
+  Buffer.prototype.parent = undefined
+}
+
+function allocate (that, length) {
+  if (Buffer.TYPED_ARRAY_SUPPORT) {
+    // Return an augmented `Uint8Array` instance, for best performance
+    that = new Uint8Array(length)
+    that.__proto__ = Buffer.prototype
+  } else {
+    // Fallback: Return an object instance of the Buffer class
+    that.length = length
+  }
+
+  var fromPool = length !== 0 && length <= Buffer.poolSize >>> 1
+  if (fromPool) that.parent = rootParent
+
+  return that
+}
+
+function checked (length) {
+  // Note: cannot use `length < kMaxLength` here because that fails when
+  // length is NaN (which is otherwise coerced to zero.)
+  if (length >= kMaxLength()) {
+    throw new RangeError('Attempt to allocate Buffer larger than maximum ' +
+                         'size: 0x' + kMaxLength().toString(16) + ' bytes')
+  }
+  return length | 0
+}
+
+function SlowBuffer (subject, encoding) {
+  if (!(this instanceof SlowBuffer)) return new SlowBuffer(subject, encoding)
+
+  var buf = new Buffer(subject, encoding)
+  delete buf.parent
+  return buf
+}
+
+Buffer.isBuffer = function isBuffer (b) {
+  return !!(b != null && b._isBuffer)
+}
+
+Buffer.compare = function compare (a, b) {
+  if (!Buffer.isBuffer(a) || !Buffer.isBuffer(b)) {
+    throw new TypeError('Arguments must be Buffers')
+  }
+
+  if (a === b) return 0
+
+  var x = a.length
+  var y = b.length
+
+  for (var i = 0, len = Math.min(x, y); i < len; ++i) {
+    if (a[i] !== b[i]) {
+      x = a[i]
+      y = b[i]
+      break
+    }
+  }
+
+  if (x < y) return -1
+  if (y < x) return 1
+  return 0
+}
+
+Buffer.isEncoding = function isEncoding (encoding) {
+  switch (String(encoding).toLowerCase()) {
+    case 'hex':
+    case 'utf8':
+    case 'utf-8':
+    case 'ascii':
+    case 'binary':
+    case 'base64':
+    case 'raw':
+    case 'ucs2':
+    case 'ucs-2':
+    case 'utf16le':
+    case 'utf-16le':
+      return true
+    default:
+      return false
+  }
+}
+
+Buffer.concat = function concat (list, length) {
+  if (!isArray(list)) throw new TypeError('list argument must be an Array of Buffers.')
+
+  if (list.length === 0) {
+    return new Buffer(0)
+  }
+
+  var i
+  if (length === undefined) {
+    length = 0
+    for (i = 0; i < list.length; i++) {
+      length += list[i].length
+    }
+  }
+
+  var buf = new Buffer(length)
+  var pos = 0
+  for (i = 0; i < list.length; i++) {
+    var item = list[i]
+    item.copy(buf, pos)
+    pos += item.length
+  }
+  return buf
+}
+
+function byteLength (string, encoding) {
+  if (typeof string !== 'string') string = '' + string
+
+  var len = string.length
+  if (len === 0) return 0
+
+  // Use a for loop to avoid recursion
+  var loweredCase = false
+  for (;;) {
+    switch (encoding) {
+      case 'ascii':
+      case 'binary':
+      // Deprecated
+      case 'raw':
+      case 'raws':
+        return len
+      case 'utf8':
+      case 'utf-8':
+        return utf8ToBytes(string).length
+      case 'ucs2':
+      case 'ucs-2':
+      case 'utf16le':
+      case 'utf-16le':
+        return len * 2
+      case 'hex':
+        return len >>> 1
+      case 'base64':
+        return base64ToBytes(string).length
+      default:
+        if (loweredCase) return utf8ToBytes(string).length // assume utf8
+        encoding = ('' + encoding).toLowerCase()
+        loweredCase = true
+    }
+  }
+}
+Buffer.byteLength = byteLength
+
+function slowToString (encoding, start, end) {
+  var loweredCase = false
+
+  start = start | 0
+  end = end === undefined || end === Infinity ? this.length : end | 0
+
+  if (!encoding) encoding = 'utf8'
+  if (start < 0) start = 0
+  if (end > this.length) end = this.length
+  if (end <= start) return ''
+
+  while (true) {
+    switch (encoding) {
+      case 'hex':
+        return hexSlice(this, start, end)
+
+      case 'utf8':
+      case 'utf-8':
+        return utf8Slice(this, start, end)
+
+      case 'ascii':
+        return asciiSlice(this, start, end)
+
+      case 'binary':
+        return binarySlice(this, start, end)
+
+      case 'base64':
+        return base64Slice(this, start, end)
+
+      case 'ucs2':
+      case 'ucs-2':
+      case 'utf16le':
+      case 'utf-16le':
+        return utf16leSlice(this, start, end)
+
+      default:
+        if (loweredCase) throw new TypeError('Unknown encoding: ' + encoding)
+        encoding = (encoding + '').toLowerCase()
+        loweredCase = true
+    }
+  }
+}
+
+// The property is used by `Buffer.isBuffer` and `is-buffer` (in Safari 5-7) to detect
+// Buffer instances.
+Buffer.prototype._isBuffer = true
+
+Buffer.prototype.toString = function toString () {
+  var length = this.length | 0
+  if (length === 0) return ''
+  if (arguments.length === 0) return utf8Slice(this, 0, length)
+  return slowToString.apply(this, arguments)
+}
+
+Buffer.prototype.equals = function equals (b) {
+  if (!Buffer.isBuffer(b)) throw new TypeError('Argument must be a Buffer')
+  if (this === b) return true
+  return Buffer.compare(this, b) === 0
+}
+
+Buffer.prototype.inspect = function inspect () {
+  var str = ''
+  var max = exports.INSPECT_MAX_BYTES
+  if (this.length > 0) {
+    str = this.toString('hex', 0, max).match(/.{2}/g).join(' ')
+    if (this.length > max) str += ' ... '
+  }
+  return '<Buffer ' + str + '>'
+}
+
+Buffer.prototype.compare = function compare (b) {
+  if (!Buffer.isBuffer(b)) throw new TypeError('Argument must be a Buffer')
+  return Buffer.compare(this, b)
+}
+
+Buffer.prototype.indexOf = function indexOf (val, byteOffset) {
+  if (byteOffset > 0x7fffffff) byteOffset = 0x7fffffff
+  else if (byteOffset < -0x80000000) byteOffset = -0x80000000
+  byteOffset >>= 0
+
+  if (this.length === 0) return -1
+  if (byteOffset >= this.length) return -1
+
+  // Negative offsets start from the end of the buffer
+  if (byteOffset < 0) byteOffset = Math.max(this.length + byteOffset, 0)
+
+  if (typeof val === 'string') {
+    if (val.length === 0) return -1 // special case: looking for empty string always fails
+    return String.prototype.indexOf.call(this, val, byteOffset)
+  }
+  if (Buffer.isBuffer(val)) {
+    return arrayIndexOf(this, val, byteOffset)
+  }
+  if (typeof val === 'number') {
+    if (Buffer.TYPED_ARRAY_SUPPORT && Uint8Array.prototype.indexOf === 'function') {
+      return Uint8Array.prototype.indexOf.call(this, val, byteOffset)
+    }
+    return arrayIndexOf(this, [ val ], byteOffset)
+  }
+
+  function arrayIndexOf (arr, val, byteOffset) {
+    var foundIndex = -1
+    for (var i = 0; byteOffset + i < arr.length; i++) {
+      if (arr[byteOffset + i] === val[foundIndex === -1 ? 0 : i - foundIndex]) {
+        if (foundIndex === -1) foundIndex = i
+        if (i - foundIndex + 1 === val.length) return byteOffset + foundIndex
+      } else {
+        foundIndex = -1
+      }
+    }
+    return -1
+  }
+
+  throw new TypeError('val must be string, number or Buffer')
+}
+
+function hexWrite (buf, string, offset, length) {
+  offset = Number(offset) || 0
+  var remaining = buf.length - offset
+  if (!length) {
+    length = remaining
+  } else {
+    length = Number(length)
+    if (length > remaining) {
+      length = remaining
+    }
+  }
+
+  // must be an even number of digits
+  var strLen = string.length
+  if (strLen % 2 !== 0) throw new Error('Invalid hex string')
+
+  if (length > strLen / 2) {
+    length = strLen / 2
+  }
+  for (var i = 0; i < length; i++) {
+    var parsed = parseInt(string.substr(i * 2, 2), 16)
+    if (isNaN(parsed)) throw new Error('Invalid hex string')
+    buf[offset + i] = parsed
+  }
+  return i
+}
+
+function utf8Write (buf, string, offset, length) {
+  return blitBuffer(utf8ToBytes(string, buf.length - offset), buf, offset, length)
+}
+
+function asciiWrite (buf, string, offset, length) {
+  return blitBuffer(asciiToBytes(string), buf, offset, length)
+}
+
+function binaryWrite (buf, string, offset, length) {
+  return asciiWrite(buf, string, offset, length)
+}
+
+function base64Write (buf, string, offset, length) {
+  return blitBuffer(base64ToBytes(string), buf, offset, length)
+}
+
+function ucs2Write (buf, string, offset, length) {
+  return blitBuffer(utf16leToBytes(string, buf.length - offset), buf, offset, length)
+}
+
+Buffer.prototype.write = function write (string, offset, length, encoding) {
+  // Buffer#write(string)
+  if (offset === undefined) {
+    encoding = 'utf8'
+    length = this.length
+    offset = 0
+  // Buffer#write(string, encoding)
+  } else if (length === undefined && typeof offset === 'string') {
+    encoding = offset
+    length = this.length
+    offset = 0
+  // Buffer#write(string, offset[, length][, encoding])
+  } else if (isFinite(offset)) {
+    offset = offset | 0
+    if (isFinite(length)) {
+      length = length | 0
+      if (encoding === undefined) encoding = 'utf8'
+    } else {
+      encoding = length
+      length = undefined
+    }
+  // legacy write(string, encoding, offset, length) - remove in v0.13
+  } else {
+    var swap = encoding
+    encoding = offset
+    offset = length | 0
+    length = swap
+  }
+
+  var remaining = this.length - offset
+  if (length === undefined || length > remaining) length = remaining
+
+  if ((string.length > 0 && (length < 0 || offset < 0)) || offset > this.length) {
+    throw new RangeError('attempt to write outside buffer bounds')
+  }
+
+  if (!encoding) encoding = 'utf8'
+
+  var loweredCase = false
+  for (;;) {
+    switch (encoding) {
+      case 'hex':
+        return hexWrite(this, string, offset, length)
+
+      case 'utf8':
+      case 'utf-8':
+        return utf8Write(this, string, offset, length)
+
+      case 'ascii':
+        return asciiWrite(this, string, offset, length)
+
+      case 'binary':
+        return binaryWrite(this, string, offset, length)
+
+      case 'base64':
+        // Warning: maxLength not taken into account in base64Write
+        return base64Write(this, string, offset, length)
+
+      case 'ucs2':
+      case 'ucs-2':
+      case 'utf16le':
+      case 'utf-16le':
+        return ucs2Write(this, string, offset, length)
+
+      default:
+        if (loweredCase) throw new TypeError('Unknown encoding: ' + encoding)
+        encoding = ('' + encoding).toLowerCase()
+        loweredCase = true
+    }
+  }
+}
+
+Buffer.prototype.toJSON = function toJSON () {
+  return {
+    type: 'Buffer',
+    data: Array.prototype.slice.call(this._arr || this, 0)
+  }
+}
+
+function base64Slice (buf, start, end) {
+  if (start === 0 && end === buf.length) {
+    return base64.fromByteArray(buf)
+  } else {
+    return base64.fromByteArray(buf.slice(start, end))
+  }
+}
+
+function utf8Slice (buf, start, end) {
+  end = Math.min(buf.length, end)
+  var res = []
+
+  var i = start
+  while (i < end) {
+    var firstByte = buf[i]
+    var codePoint = null
+    var bytesPerSequence = (firstByte > 0xEF) ? 4
+      : (firstByte > 0xDF) ? 3
+      : (firstByte > 0xBF) ? 2
+      : 1
+
+    if (i + bytesPerSequence <= end) {
+      var secondByte, thirdByte, fourthByte, tempCodePoint
+
+      switch (bytesPerSequence) {
+        case 1:
+          if (firstByte < 0x80) {
+            codePoint = firstByte
+          }
+          break
+        case 2:
+          secondByte = buf[i + 1]
+          if ((secondByte & 0xC0) === 0x80) {
+            tempCodePoint = (firstByte & 0x1F) << 0x6 | (secondByte & 0x3F)
+            if (tempCodePoint > 0x7F) {
+              codePoint = tempCodePoint
+            }
+          }
+          break
+        case 3:
+          secondByte = buf[i + 1]
+          thirdByte = buf[i + 2]
+          if ((secondByte & 0xC0) === 0x80 && (thirdByte & 0xC0) === 0x80) {
+            tempCodePoint = (firstByte & 0xF) << 0xC | (secondByte & 0x3F) << 0x6 | (thirdByte & 0x3F)
+            if (tempCodePoint > 0x7FF && (tempCodePoint < 0xD800 || tempCodePoint > 0xDFFF)) {
+              codePoint = tempCodePoint
+            }
+          }
+          break
+        case 4:
+          secondByte = buf[i + 1]
+          thirdByte = buf[i + 2]
+          fourthByte = buf[i + 3]
+          if ((secondByte & 0xC0) === 0x80 && (thirdByte & 0xC0) === 0x80 && (fourthByte & 0xC0) === 0x80) {
+            tempCodePoint = (firstByte & 0xF) << 0x12 | (secondByte & 0x3F) << 0xC | (thirdByte & 0x3F) << 0x6 | (fourthByte & 0x3F)
+            if (tempCodePoint > 0xFFFF && tempCodePoint < 0x110000) {
+              codePoint = tempCodePoint
+            }
+          }
+      }
+    }
+
+    if (codePoint === null) {
+      // we did not generate a valid codePoint so insert a
+      // replacement char (U+FFFD) and advance only 1 byte
+      codePoint = 0xFFFD
+      bytesPerSequence = 1
+    } else if (codePoint > 0xFFFF) {
+      // encode to utf16 (surrogate pair dance)
+      codePoint -= 0x10000
+      res.push(codePoint >>> 10 & 0x3FF | 0xD800)
+      codePoint = 0xDC00 | codePoint & 0x3FF
+    }
+
+    res.push(codePoint)
+    i += bytesPerSequence
+  }
+
+  return decodeCodePointsArray(res)
+}
+
+// Based on http://stackoverflow.com/a/22747272/680742, the browser with
+// the lowest limit is Chrome, with 0x10000 args.
+// We go 1 magnitude less, for safety
+var MAX_ARGUMENTS_LENGTH = 0x1000
+
+function decodeCodePointsArray (codePoints) {
+  var len = codePoints.length
+  if (len <= MAX_ARGUMENTS_LENGTH) {
+    return String.fromCharCode.apply(String, codePoints) // avoid extra slice()
+  }
+
+  // Decode in chunks to avoid "call stack size exceeded".
+  var res = ''
+  var i = 0
+  while (i < len) {
+    res += String.fromCharCode.apply(
+      String,
+      codePoints.slice(i, i += MAX_ARGUMENTS_LENGTH)
+    )
+  }
+  return res
+}
+
+function asciiSlice (buf, start, end) {
+  var ret = ''
+  end = Math.min(buf.length, end)
+
+  for (var i = start; i < end; i++) {
+    ret += String.fromCharCode(buf[i] & 0x7F)
+  }
+  return ret
+}
+
+function binarySlice (buf, start, end) {
+  var ret = ''
+  end = Math.min(buf.length, end)
+
+  for (var i = start; i < end; i++) {
+    ret += String.fromCharCode(buf[i])
+  }
+  return ret
+}
+
+function hexSlice (buf, start, end) {
+  var len = buf.length
+
+  if (!start || start < 0) start = 0
+  if (!end || end < 0 || end > len) end = len
+
+  var out = ''
+  for (var i = start; i < end; i++) {
+    out += toHex(buf[i])
+  }
+  return out
+}
+
+function utf16leSlice (buf, start, end) {
+  var bytes = buf.slice(start, end)
+  var res = ''
+  for (var i = 0; i < bytes.length; i += 2) {
+    res += String.fromCharCode(bytes[i] + bytes[i + 1] * 256)
+  }
+  return res
+}
+
+Buffer.prototype.slice = function slice (start, end) {
+  var len = this.length
+  start = ~~start
+  end = end === undefined ? len : ~~end
+
+  if (start < 0) {
+    start += len
+    if (start < 0) start = 0
+  } else if (start > len) {
+    start = len
+  }
+
+  if (end < 0) {
+    end += len
+    if (end < 0) end = 0
+  } else if (end > len) {
+    end = len
+  }
+
+  if (end < start) end = start
+
+  var newBuf
+  if (Buffer.TYPED_ARRAY_SUPPORT) {
+    newBuf = this.subarray(start, end)
+    newBuf.__proto__ = Buffer.prototype
+  } else {
+    var sliceLen = end - start
+    newBuf = new Buffer(sliceLen, undefined)
+    for (var i = 0; i < sliceLen; i++) {
+      newBuf[i] = this[i + start]
+    }
+  }
+
+  if (newBuf.length) newBuf.parent = this.parent || this
+
+  return newBuf
+}
+
+/*
+ * Need to make sure that buffer isn't trying to write out of bounds.
+ */
+function checkOffset (offset, ext, length) {
+  if ((offset % 1) !== 0 || offset < 0) throw new RangeError('offset is not uint')
+  if (offset + ext > length) throw new RangeError('Trying to access beyond buffer length')
+}
+
+Buffer.prototype.readUIntLE = function readUIntLE (offset, byteLength, noAssert) {
+  offset = offset | 0
+  byteLength = byteLength | 0
+  if (!noAssert) checkOffset(offset, byteLength, this.length)
+
+  var val = this[offset]
+  var mul = 1
+  var i = 0
+  while (++i < byteLength && (mul *= 0x100)) {
+    val += this[offset + i] * mul
+  }
+
+  return val
+}
+
+Buffer.prototype.readUIntBE = function readUIntBE (offset, byteLength, noAssert) {
+  offset = offset | 0
+  byteLength = byteLength | 0
+  if (!noAssert) {
+    checkOffset(offset, byteLength, this.length)
+  }
+
+  var val = this[offset + --byteLength]
+  var mul = 1
+  while (byteLength > 0 && (mul *= 0x100)) {
+    val += this[offset + --byteLength] * mul
+  }
+
+  return val
+}
+
+Buffer.prototype.readUInt8 = function readUInt8 (offset, noAssert) {
+  if (!noAssert) checkOffset(offset, 1, this.length)
+  return this[offset]
+}
+
+Buffer.prototype.readUInt16LE = function readUInt16LE (offset, noAssert) {
+  if (!noAssert) checkOffset(offset, 2, this.length)
+  return this[offset] | (this[offset + 1] << 8)
+}
+
+Buffer.prototype.readUInt16BE = function readUInt16BE (offset, noAssert) {
+  if (!noAssert) checkOffset(offset, 2, this.length)
+  return (this[offset] << 8) | this[offset + 1]
+}
+
+Buffer.prototype.readUInt32LE = function readUInt32LE (offset, noAssert) {
+  if (!noAssert) checkOffset(offset, 4, this.length)
+
+  return ((this[offset]) |
+      (this[offset + 1] << 8) |
+      (this[offset + 2] << 16)) +
+      (this[offset + 3] * 0x1000000)
+}
+
+Buffer.prototype.readUInt32BE = function readUInt32BE (offset, noAssert) {
+  if (!noAssert) checkOffset(offset, 4, this.length)
+
+  return (this[offset] * 0x1000000) +
+    ((this[offset + 1] << 16) |
+    (this[offset + 2] << 8) |
+    this[offset + 3])
+}
+
+Buffer.prototype.readIntLE = function readIntLE (offset, byteLength, noAssert) {
+  offset = offset | 0
+  byteLength = byteLength | 0
+  if (!noAssert) checkOffset(offset, byteLength, this.length)
+
+  var val = this[offset]
+  var mul = 1
+  var i = 0
+  while (++i < byteLength && (mul *= 0x100)) {
+    val += this[offset + i] * mul
+  }
+  mul *= 0x80
+
+  if (val >= mul) val -= Math.pow(2, 8 * byteLength)
+
+  return val
+}
+
+Buffer.prototype.readIntBE = function readIntBE (offset, byteLength, noAssert) {
+  offset = offset | 0
+  byteLength = byteLength | 0
+  if (!noAssert) checkOffset(offset, byteLength, this.length)
+
+  var i = byteLength
+  var mul = 1
+  var val = this[offset + --i]
+  while (i > 0 && (mul *= 0x100)) {
+    val += this[offset + --i] * mul
+  }
+  mul *= 0x80
+
+  if (val >= mul) val -= Math.pow(2, 8 * byteLength)
+
+  return val
+}
+
+Buffer.prototype.readInt8 = function readInt8 (offset, noAssert) {
+  if (!noAssert) checkOffset(offset, 1, this.length)
+  if (!(this[offset] & 0x80)) return (this[offset])
+  return ((0xff - this[offset] + 1) * -1)
+}
+
+Buffer.prototype.readInt16LE = function readInt16LE (offset, noAssert) {
+  if (!noAssert) checkOffset(offset, 2, this.length)
+  var val = this[offset] | (this[offset + 1] << 8)
+  return (val & 0x8000) ? val | 0xFFFF0000 : val
+}
+
+Buffer.prototype.readInt16BE = function readInt16BE (offset, noAssert) {
+  if (!noAssert) checkOffset(offset, 2, this.length)
+  var val = this[offset + 1] | (this[offset] << 8)
+  return (val & 0x8000) ? val | 0xFFFF0000 : val
+}
+
+Buffer.prototype.readInt32LE = function readInt32LE (offset, noAssert) {
+  if (!noAssert) checkOffset(offset, 4, this.length)
+
+  return (this[offset]) |
+    (this[offset + 1] << 8) |
+    (this[offset + 2] << 16) |
+    (this[offset + 3] << 24)
+}
+
+Buffer.prototype.readInt32BE = function readInt32BE (offset, noAssert) {
+  if (!noAssert) checkOffset(offset, 4, this.length)
+
+  return (this[offset] << 24) |
+    (this[offset + 1] << 16) |
+    (this[offset + 2] << 8) |
+    (this[offset + 3])
+}
+
+Buffer.prototype.readFloatLE = function readFloatLE (offset, noAssert) {
+  if (!noAssert) checkOffset(offset, 4, this.length)
+  return ieee754.read(this, offset, true, 23, 4)
+}
+
+Buffer.prototype.readFloatBE = function readFloatBE (offset, noAssert) {
+  if (!noAssert) checkOffset(offset, 4, this.length)
+  return ieee754.read(this, offset, false, 23, 4)
+}
+
+Buffer.prototype.readDoubleLE = function readDoubleLE (offset, noAssert) {
+  if (!noAssert) checkOffset(offset, 8, this.length)
+  return ieee754.read(this, offset, true, 52, 8)
+}
+
+Buffer.prototype.readDoubleBE = function readDoubleBE (offset, noAssert) {
+  if (!noAssert) checkOffset(offset, 8, this.length)
+  return ieee754.read(this, offset, false, 52, 8)
+}
+
+function checkInt (buf, value, offset, ext, max, min) {
+  if (!Buffer.isBuffer(buf)) throw new TypeError('buffer must be a Buffer instance')
+  if (value > max || value < min) throw new RangeError('value is out of bounds')
+  if (offset + ext > buf.length) throw new RangeError('index out of range')
+}
+
+Buffer.prototype.writeUIntLE = function writeUIntLE (value, offset, byteLength, noAssert) {
+  value = +value
+  offset = offset | 0
+  byteLength = byteLength | 0
+  if (!noAssert) checkInt(this, value, offset, byteLength, Math.pow(2, 8 * byteLength), 0)
+
+  var mul = 1
+  var i = 0
+  this[offset] = value & 0xFF
+  while (++i < byteLength && (mul *= 0x100)) {
+    this[offset + i] = (value / mul) & 0xFF
+  }
+
+  return offset + byteLength
+}
+
+Buffer.prototype.writeUIntBE = function writeUIntBE (value, offset, byteLength, noAssert) {
+  value = +value
+  offset = offset | 0
+  byteLength = byteLength | 0
+  if (!noAssert) checkInt(this, value, offset, byteLength, Math.pow(2, 8 * byteLength), 0)
+
+  var i = byteLength - 1
+  var mul = 1
+  this[offset + i] = value & 0xFF
+  while (--i >= 0 && (mul *= 0x100)) {
+    this[offset + i] = (value / mul) & 0xFF
+  }
+
+  return offset + byteLength
+}
+
+Buffer.prototype.writeUInt8 = function writeUInt8 (value, offset, noAssert) {
+  value = +value
+  offset = offset | 0
+  if (!noAssert) checkInt(this, value, offset, 1, 0xff, 0)
+  if (!Buffer.TYPED_ARRAY_SUPPORT) value = Math.floor(value)
+  this[offset] = (value & 0xff)
+  return offset + 1
+}
+
+function objectWriteUInt16 (buf, value, offset, littleEndian) {
+  if (value < 0) value = 0xffff + value + 1
+  for (var i = 0, j = Math.min(buf.length - offset, 2); i < j; i++) {
+    buf[offset + i] = (value & (0xff << (8 * (littleEndian ? i : 1 - i)))) >>>
+      (littleEndian ? i : 1 - i) * 8
+  }
+}
+
+Buffer.prototype.writeUInt16LE = function writeUInt16LE (value, offset, noAssert) {
+  value = +value
+  offset = offset | 0
+  if (!noAssert) checkInt(this, value, offset, 2, 0xffff, 0)
+  if (Buffer.TYPED_ARRAY_SUPPORT) {
+    this[offset] = (value & 0xff)
+    this[offset + 1] = (value >>> 8)
+  } else {
+    objectWriteUInt16(this, value, offset, true)
+  }
+  return offset + 2
+}
+
+Buffer.prototype.writeUInt16BE = function writeUInt16BE (value, offset, noAssert) {
+  value = +value
+  offset = offset | 0
+  if (!noAssert) checkInt(this, value, offset, 2, 0xffff, 0)
+  if (Buffer.TYPED_ARRAY_SUPPORT) {
+    this[offset] = (value >>> 8)
+    this[offset + 1] = (value & 0xff)
+  } else {
+    objectWriteUInt16(this, value, offset, false)
+  }
+  return offset + 2
+}
+
+function objectWriteUInt32 (buf, value, offset, littleEndian) {
+  if (value < 0) value = 0xffffffff + value + 1
+  for (var i = 0, j = Math.min(buf.length - offset, 4); i < j; i++) {
+    buf[offset + i] = (value >>> (littleEndian ? i : 3 - i) * 8) & 0xff
+  }
+}
+
+Buffer.prototype.writeUInt32LE = function writeUInt32LE (value, offset, noAssert) {
+  value = +value
+  offset = offset | 0
+  if (!noAssert) checkInt(this, value, offset, 4, 0xffffffff, 0)
+  if (Buffer.TYPED_ARRAY_SUPPORT) {
+    this[offset + 3] = (value >>> 24)
+    this[offset + 2] = (value >>> 16)
+    this[offset + 1] = (value >>> 8)
+    this[offset] = (value & 0xff)
+  } else {
+    objectWriteUInt32(this, value, offset, true)
+  }
+  return offset + 4
+}
+
+Buffer.prototype.writeUInt32BE = function writeUInt32BE (value, offset, noAssert) {
+  value = +value
+  offset = offset | 0
+  if (!noAssert) checkInt(this, value, offset, 4, 0xffffffff, 0)
+  if (Buffer.TYPED_ARRAY_SUPPORT) {
+    this[offset] = (value >>> 24)
+    this[offset + 1] = (value >>> 16)
+    this[offset + 2] = (value >>> 8)
+    this[offset + 3] = (value & 0xff)
+  } else {
+    objectWriteUInt32(this, value, offset, false)
+  }
+  return offset + 4
+}
+
+Buffer.prototype.writeIntLE = function writeIntLE (value, offset, byteLength, noAssert) {
+  value = +value
+  offset = offset | 0
+  if (!noAssert) {
+    var limit = Math.pow(2, 8 * byteLength - 1)
+
+    checkInt(this, value, offset, byteLength, limit - 1, -limit)
+  }
+
+  var i = 0
+  var mul = 1
+  var sub = value < 0 ? 1 : 0
+  this[offset] = value & 0xFF
+  while (++i < byteLength && (mul *= 0x100)) {
+    this[offset + i] = ((value / mul) >> 0) - sub & 0xFF
+  }
+
+  return offset + byteLength
+}
+
+Buffer.prototype.writeIntBE = function writeIntBE (value, offset, byteLength, noAssert) {
+  value = +value
+  offset = offset | 0
+  if (!noAssert) {
+    var limit = Math.pow(2, 8 * byteLength - 1)
+
+    checkInt(this, value, offset, byteLength, limit - 1, -limit)
+  }
+
+  var i = byteLength - 1
+  var mul = 1
+  var sub = value < 0 ? 1 : 0
+  this[offset + i] = value & 0xFF
+  while (--i >= 0 && (mul *= 0x100)) {
+    this[offset + i] = ((value / mul) >> 0) - sub & 0xFF
+  }
+
+  return offset + byteLength
+}
+
+Buffer.prototype.writeInt8 = function writeInt8 (value, offset, noAssert) {
+  value = +value
+  offset = offset | 0
+  if (!noAssert) checkInt(this, value, offset, 1, 0x7f, -0x80)
+  if (!Buffer.TYPED_ARRAY_SUPPORT) value = Math.floor(value)
+  if (value < 0) value = 0xff + value + 1
+  this[offset] = (value & 0xff)
+  return offset + 1
+}
+
+Buffer.prototype.writeInt16LE = function writeInt16LE (value, offset, noAssert) {
+  value = +value
+  offset = offset | 0
+  if (!noAssert) checkInt(this, value, offset, 2, 0x7fff, -0x8000)
+  if (Buffer.TYPED_ARRAY_SUPPORT) {
+    this[offset] = (value & 0xff)
+    this[offset + 1] = (value >>> 8)
+  } else {
+    objectWriteUInt16(this, value, offset, true)
+  }
+  return offset + 2
+}
+
+Buffer.prototype.writeInt16BE = function writeInt16BE (value, offset, noAssert) {
+  value = +value
+  offset = offset | 0
+  if (!noAssert) checkInt(this, value, offset, 2, 0x7fff, -0x8000)
+  if (Buffer.TYPED_ARRAY_SUPPORT) {
+    this[offset] = (value >>> 8)
+    this[offset + 1] = (value & 0xff)
+  } else {
+    objectWriteUInt16(this, value, offset, false)
+  }
+  return offset + 2
+}
+
+Buffer.prototype.writeInt32LE = function writeInt32LE (value, offset, noAssert) {
+  value = +value
+  offset = offset | 0
+  if (!noAssert) checkInt(this, value, offset, 4, 0x7fffffff, -0x80000000)
+  if (Buffer.TYPED_ARRAY_SUPPORT) {
+    this[offset] = (value & 0xff)
+    this[offset + 1] = (value >>> 8)
+    this[offset + 2] = (value >>> 16)
+    this[offset + 3] = (value >>> 24)
+  } else {
+    objectWriteUInt32(this, value, offset, true)
+  }
+  return offset + 4
+}
+
+Buffer.prototype.writeInt32BE = function writeInt32BE (value, offset, noAssert) {
+  value = +value
+  offset = offset | 0
+  if (!noAssert) checkInt(this, value, offset, 4, 0x7fffffff, -0x80000000)
+  if (value < 0) value = 0xffffffff + value + 1
+  if (Buffer.TYPED_ARRAY_SUPPORT) {
+    this[offset] = (value >>> 24)
+    this[offset + 1] = (value >>> 16)
+    this[offset + 2] = (value >>> 8)
+    this[offset + 3] = (value & 0xff)
+  } else {
+    objectWriteUInt32(this, value, offset, false)
+  }
+  return offset + 4
+}
+
+function checkIEEE754 (buf, value, offset, ext, max, min) {
+  if (offset + ext > buf.length) throw new RangeError('index out of range')
+  if (offset < 0) throw new RangeError('index out of range')
+}
+
+function writeFloat (buf, value, offset, littleEndian, noAssert) {
+  if (!noAssert) {
+    checkIEEE754(buf, value, offset, 4, 3.4028234663852886e+38, -3.4028234663852886e+38)
+  }
+  ieee754.write(buf, value, offset, littleEndian, 23, 4)
+  return offset + 4
+}
+
+Buffer.prototype.writeFloatLE = function writeFloatLE (value, offset, noAssert) {
+  return writeFloat(this, value, offset, true, noAssert)
+}
+
+Buffer.prototype.writeFloatBE = function writeFloatBE (value, offset, noAssert) {
+  return writeFloat(this, value, offset, false, noAssert)
+}
+
+function writeDouble (buf, value, offset, littleEndian, noAssert) {
+  if (!noAssert) {
+    checkIEEE754(buf, value, offset, 8, 1.7976931348623157E+308, -1.7976931348623157E+308)
+  }
+  ieee754.write(buf, value, offset, littleEndian, 52, 8)
+  return offset + 8
+}
+
+Buffer.prototype.writeDoubleLE = function writeDoubleLE (value, offset, noAssert) {
+  return writeDouble(this, value, offset, true, noAssert)
+}
+
+Buffer.prototype.writeDoubleBE = function writeDoubleBE (value, offset, noAssert) {
+  return writeDouble(this, value, offset, false, noAssert)
+}
+
+// copy(targetBuffer, targetStart=0, sourceStart=0, sourceEnd=buffer.length)
+Buffer.prototype.copy = function copy (target, targetStart, start, end) {
+  if (!start) start = 0
+  if (!end && end !== 0) end = this.length
+  if (targetStart >= target.length) targetStart = target.length
+  if (!targetStart) targetStart = 0
+  if (end > 0 && end < start) end = start
+
+  // Copy 0 bytes; we're done
+  if (end === start) return 0
+  if (target.length === 0 || this.length === 0) return 0
+
+  // Fatal error conditions
+  if (targetStart < 0) {
+    throw new RangeError('targetStart out of bounds')
+  }
+  if (start < 0 || start >= this.length) throw new RangeError('sourceStart out of bounds')
+  if (end < 0) throw new RangeError('sourceEnd out of bounds')
+
+  // Are we oob?
+  if (end > this.length) end = this.length
+  if (target.length - targetStart < end - start) {
+    end = target.length - targetStart + start
+  }
+
+  var len = end - start
+  var i
+
+  if (this === target && start < targetStart && targetStart < end) {
+    // descending copy from end
+    for (i = len - 1; i >= 0; i--) {
+      target[i + targetStart] = this[i + start]
+    }
+  } else if (len < 1000 || !Buffer.TYPED_ARRAY_SUPPORT) {
+    // ascending copy from start
+    for (i = 0; i < len; i++) {
+      target[i + targetStart] = this[i + start]
+    }
+  } else {
+    Uint8Array.prototype.set.call(
+      target,
+      this.subarray(start, start + len),
+      targetStart
+    )
+  }
+
+  return len
+}
+
+// fill(value, start=0, end=buffer.length)
+Buffer.prototype.fill = function fill (value, start, end) {
+  if (!value) value = 0
+  if (!start) start = 0
+  if (!end) end = this.length
+
+  if (end < start) throw new RangeError('end < start')
+
+  // Fill 0 bytes; we're done
+  if (end === start) return
+  if (this.length === 0) return
+
+  if (start < 0 || start >= this.length) throw new RangeError('start out of bounds')
+  if (end < 0 || end > this.length) throw new RangeError('end out of bounds')
+
+  var i
+  if (typeof value === 'number') {
+    for (i = start; i < end; i++) {
+      this[i] = value
+    }
+  } else {
+    var bytes = utf8ToBytes(value.toString())
+    var len = bytes.length
+    for (i = start; i < end; i++) {
+      this[i] = bytes[i % len]
+    }
+  }
+
+  return this
+}
+
+// HELPER FUNCTIONS
+// ================
+
+var INVALID_BASE64_RE = /[^+\/0-9A-Za-z-_]/g
+
+function base64clean (str) {
+  // Node strips out invalid characters like \n and \t from the string, base64-js does not
+  str = stringtrim(str).replace(INVALID_BASE64_RE, '')
+  // Node converts strings with length < 2 to ''
+  if (str.length < 2) return ''
+  // Node allows for non-padded base64 strings (missing trailing ===), base64-js does not
+  while (str.length % 4 !== 0) {
+    str = str + '='
+  }
+  return str
+}
+
+function stringtrim (str) {
+  if (str.trim) return str.trim()
+  return str.replace(/^\s+|\s+$/g, '')
+}
+
+function toHex (n) {
+  if (n < 16) return '0' + n.toString(16)
+  return n.toString(16)
+}
+
+function utf8ToBytes (string, units) {
+  units = units || Infinity
+  var codePoint
+  var length = string.length
+  var leadSurrogate = null
+  var bytes = []
+
+  for (var i = 0; i < length; i++) {
+    codePoint = string.charCodeAt(i)
+
+    // is surrogate component
+    if (codePoint > 0xD7FF && codePoint < 0xE000) {
+      // last char was a lead
+      if (!leadSurrogate) {
+        // no lead yet
+        if (codePoint > 0xDBFF) {
+          // unexpected trail
+          if ((units -= 3) > -1) bytes.push(0xEF, 0xBF, 0xBD)
+          continue
+        } else if (i + 1 === length) {
+          // unpaired lead
+          if ((units -= 3) > -1) bytes.push(0xEF, 0xBF, 0xBD)
+          continue
+        }
+
+        // valid lead
+        leadSurrogate = codePoint
+
+        continue
+      }
+
+      // 2 leads in a row
+      if (codePoint < 0xDC00) {
+        if ((units -= 3) > -1) bytes.push(0xEF, 0xBF, 0xBD)
+        leadSurrogate = codePoint
+        continue
+      }
+
+      // valid surrogate pair
+      codePoint = (leadSurrogate - 0xD800 << 10 | codePoint - 0xDC00) + 0x10000
+    } else if (leadSurrogate) {
+      // valid bmp char, but last char was a lead
+      if ((units -= 3) > -1) bytes.push(0xEF, 0xBF, 0xBD)
+    }
+
+    leadSurrogate = null
+
+    // encode utf8
+    if (codePoint < 0x80) {
+      if ((units -= 1) < 0) break
+      bytes.push(codePoint)
+    } else if (codePoint < 0x800) {
+      if ((units -= 2) < 0) break
+      bytes.push(
+        codePoint >> 0x6 | 0xC0,
+        codePoint & 0x3F | 0x80
+      )
+    } else if (codePoint < 0x10000) {
+      if ((units -= 3) < 0) break
+      bytes.push(
+        codePoint >> 0xC | 0xE0,
+        codePoint >> 0x6 & 0x3F | 0x80,
+        codePoint & 0x3F | 0x80
+      )
+    } else if (codePoint < 0x110000) {
+      if ((units -= 4) < 0) break
+      bytes.push(
+        codePoint >> 0x12 | 0xF0,
+        codePoint >> 0xC & 0x3F | 0x80,
+        codePoint >> 0x6 & 0x3F | 0x80,
+        codePoint & 0x3F | 0x80
+      )
+    } else {
+      throw new Error('Invalid code point')
+    }
+  }
+
+  return bytes
+}
+
+function asciiToBytes (str) {
+  var byteArray = []
+  for (var i = 0; i < str.length; i++) {
+    // Node's code seems to be doing this and not & 0x7F..
+    byteArray.push(str.charCodeAt(i) & 0xFF)
+  }
+  return byteArray
+}
+
+function utf16leToBytes (str, units) {
+  var c, hi, lo
+  var byteArray = []
+  for (var i = 0; i < str.length; i++) {
+    if ((units -= 2) < 0) break
+
+    c = str.charCodeAt(i)
+    hi = c >> 8
+    lo = c % 256
+    byteArray.push(lo)
+    byteArray.push(hi)
+  }
+
+  return byteArray
+}
+
+function base64ToBytes (str) {
+  return base64.toByteArray(base64clean(str))
+}
+
+function blitBuffer (src, dst, offset, length) {
+  for (var i = 0; i < length; i++) {
+    if ((i + offset >= dst.length) || (i >= src.length)) break
+    dst[i + offset] = src[i]
+  }
+  return i
+}
+
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{"base64-js":5,"ieee754":37,"isarray":8}],8:[function(require,module,exports){
+var toString = {}.toString;
+
+module.exports = Array.isArray || function (arr) {
+  return toString.call(arr) == '[object Array]';
+};
+
+},{}],9:[function(require,module,exports){
+// Copyright Joyent, Inc. and other Node contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to permit
+// persons to whom the Software is furnished to do so, subject to the
+// following conditions:
+//
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+// USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+function EventEmitter() {
+  this._events = this._events || {};
+  this._maxListeners = this._maxListeners || undefined;
+}
+module.exports = EventEmitter;
+
+// Backwards-compat with node 0.10.x
+EventEmitter.EventEmitter = EventEmitter;
+
+EventEmitter.prototype._events = undefined;
+EventEmitter.prototype._maxListeners = undefined;
+
+// By default EventEmitters will print a warning if more than 10 listeners are
+// added to it. This is a useful default which helps finding memory leaks.
+EventEmitter.defaultMaxListeners = 10;
+
+// Obviously not all Emitters should be limited to 10. This function allows
+// that to be increased. Set to zero for unlimited.
+EventEmitter.prototype.setMaxListeners = function(n) {
+  if (!isNumber(n) || n < 0 || isNaN(n))
+    throw TypeError('n must be a positive number');
+  this._maxListeners = n;
+  return this;
+};
+
+EventEmitter.prototype.emit = function(type) {
+  var er, handler, len, args, i, listeners;
+
+  if (!this._events)
+    this._events = {};
+
+  // If there is no 'error' event listener then throw.
+  if (type === 'error') {
+    if (!this._events.error ||
+        (isObject(this._events.error) && !this._events.error.length)) {
+      er = arguments[1];
+      if (er instanceof Error) {
+        throw er; // Unhandled 'error' event
+      }
+      throw TypeError('Uncaught, unspecified "error" event.');
+    }
+  }
+
+  handler = this._events[type];
+
+  if (isUndefined(handler))
+    return false;
+
+  if (isFunction(handler)) {
+    switch (arguments.length) {
+      // fast cases
+      case 1:
+        handler.call(this);
+        break;
+      case 2:
+        handler.call(this, arguments[1]);
+        break;
+      case 3:
+        handler.call(this, arguments[1], arguments[2]);
+        break;
+      // slower
+      default:
+        args = Array.prototype.slice.call(arguments, 1);
+        handler.apply(this, args);
+    }
+  } else if (isObject(handler)) {
+    args = Array.prototype.slice.call(arguments, 1);
+    listeners = handler.slice();
+    len = listeners.length;
+    for (i = 0; i < len; i++)
+      listeners[i].apply(this, args);
+  }
+
+  return true;
+};
+
+EventEmitter.prototype.addListener = function(type, listener) {
+  var m;
+
+  if (!isFunction(listener))
+    throw TypeError('listener must be a function');
+
+  if (!this._events)
+    this._events = {};
+
+  // To avoid recursion in the case that type === "newListener"! Before
+  // adding it to the listeners, first emit "newListener".
+  if (this._events.newListener)
+    this.emit('newListener', type,
+              isFunction(listener.listener) ?
+              listener.listener : listener);
+
+  if (!this._events[type])
+    // Optimize the case of one listener. Don't need the extra array object.
+    this._events[type] = listener;
+  else if (isObject(this._events[type]))
+    // If we've already got an array, just append.
+    this._events[type].push(listener);
+  else
+    // Adding the second element, need to change to array.
+    this._events[type] = [this._events[type], listener];
+
+  // Check for listener leak
+  if (isObject(this._events[type]) && !this._events[type].warned) {
+    if (!isUndefined(this._maxListeners)) {
+      m = this._maxListeners;
+    } else {
+      m = EventEmitter.defaultMaxListeners;
+    }
+
+    if (m && m > 0 && this._events[type].length > m) {
+      this._events[type].warned = true;
+      console.error('(node) warning: possible EventEmitter memory ' +
+                    'leak detected. %d listeners added. ' +
+                    'Use emitter.setMaxListeners() to increase limit.',
+                    this._events[type].length);
+      if (typeof console.trace === 'function') {
+        // not supported in IE 10
+        console.trace();
+      }
+    }
+  }
+
+  return this;
+};
+
+EventEmitter.prototype.on = EventEmitter.prototype.addListener;
+
+EventEmitter.prototype.once = function(type, listener) {
+  if (!isFunction(listener))
+    throw TypeError('listener must be a function');
+
+  var fired = false;
+
+  function g() {
+    this.removeListener(type, g);
+
+    if (!fired) {
+      fired = true;
+      listener.apply(this, arguments);
+    }
+  }
+
+  g.listener = listener;
+  this.on(type, g);
+
+  return this;
+};
+
+// emits a 'removeListener' event iff the listener was removed
+EventEmitter.prototype.removeListener = function(type, listener) {
+  var list, position, length, i;
+
+  if (!isFunction(listener))
+    throw TypeError('listener must be a function');
+
+  if (!this._events || !this._events[type])
+    return this;
+
+  list = this._events[type];
+  length = list.length;
+  position = -1;
+
+  if (list === listener ||
+      (isFunction(list.listener) && list.listener === listener)) {
+    delete this._events[type];
+    if (this._events.removeListener)
+      this.emit('removeListener', type, listener);
+
+  } else if (isObject(list)) {
+    for (i = length; i-- > 0;) {
+      if (list[i] === listener ||
+          (list[i].listener && list[i].listener === listener)) {
+        position = i;
+        break;
+      }
+    }
+
+    if (position < 0)
+      return this;
+
+    if (list.length === 1) {
+      list.length = 0;
+      delete this._events[type];
+    } else {
+      list.splice(position, 1);
+    }
+
+    if (this._events.removeListener)
+      this.emit('removeListener', type, listener);
+  }
+
+  return this;
+};
+
+EventEmitter.prototype.removeAllListeners = function(type) {
+  var key, listeners;
+
+  if (!this._events)
+    return this;
+
+  // not listening for removeListener, no need to emit
+  if (!this._events.removeListener) {
+    if (arguments.length === 0)
+      this._events = {};
+    else if (this._events[type])
+      delete this._events[type];
+    return this;
+  }
+
+  // emit removeListener for all listeners on all events
+  if (arguments.length === 0) {
+    for (key in this._events) {
+      if (key === 'removeListener') continue;
+      this.removeAllListeners(key);
+    }
+    this.removeAllListeners('removeListener');
+    this._events = {};
+    return this;
+  }
+
+  listeners = this._events[type];
+
+  if (isFunction(listeners)) {
+    this.removeListener(type, listeners);
+  } else if (listeners) {
+    // LIFO order
+    while (listeners.length)
+      this.removeListener(type, listeners[listeners.length - 1]);
+  }
+  delete this._events[type];
+
+  return this;
+};
+
+EventEmitter.prototype.listeners = function(type) {
+  var ret;
+  if (!this._events || !this._events[type])
+    ret = [];
+  else if (isFunction(this._events[type]))
+    ret = [this._events[type]];
+  else
+    ret = this._events[type].slice();
+  return ret;
+};
+
+EventEmitter.prototype.listenerCount = function(type) {
+  if (this._events) {
+    var evlistener = this._events[type];
+
+    if (isFunction(evlistener))
+      return 1;
+    else if (evlistener)
+      return evlistener.length;
+  }
+  return 0;
+};
+
+EventEmitter.listenerCount = function(emitter, type) {
+  return emitter.listenerCount(type);
+};
+
+function isFunction(arg) {
+  return typeof arg === 'function';
+}
+
+function isNumber(arg) {
+  return typeof arg === 'number';
+}
+
+function isObject(arg) {
+  return typeof arg === 'object' && arg !== null;
+}
+
+function isUndefined(arg) {
+  return arg === void 0;
+}
+
+},{}],10:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -146,7 +2079,7 @@ var EventListener = {
 
 module.exports = EventListener;
 }).call(this,require('_process'))
-},{"./emptyFunction":11,"_process":31}],5:[function(require,module,exports){
+},{"./emptyFunction":17,"_process":49}],11:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -183,7 +2116,7 @@ var ExecutionEnvironment = {
 };
 
 module.exports = ExecutionEnvironment;
-},{}],6:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -216,7 +2149,7 @@ function camelize(string) {
 }
 
 module.exports = camelize;
-},{}],7:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -257,7 +2190,7 @@ function camelizeStyleName(string) {
 }
 
 module.exports = camelizeStyleName;
-},{"./camelize":6}],8:[function(require,module,exports){
+},{"./camelize":12}],14:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -313,7 +2246,7 @@ function containsNode(_x, _x2) {
 }
 
 module.exports = containsNode;
-},{"./isTextNode":21}],9:[function(require,module,exports){
+},{"./isTextNode":27}],15:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -399,7 +2332,7 @@ function createArrayFromMixed(obj) {
 }
 
 module.exports = createArrayFromMixed;
-},{"./toArray":29}],10:[function(require,module,exports){
+},{"./toArray":35}],16:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -486,7 +2419,7 @@ function createNodesFromMarkup(markup, handleScript) {
 
 module.exports = createNodesFromMarkup;
 }).call(this,require('_process'))
-},{"./ExecutionEnvironment":5,"./createArrayFromMixed":9,"./getMarkupWrap":15,"./invariant":19,"_process":31}],11:[function(require,module,exports){
+},{"./ExecutionEnvironment":11,"./createArrayFromMixed":15,"./getMarkupWrap":21,"./invariant":25,"_process":49}],17:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -525,7 +2458,7 @@ emptyFunction.thatReturnsArgument = function (arg) {
 };
 
 module.exports = emptyFunction;
-},{}],12:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -548,7 +2481,7 @@ if (process.env.NODE_ENV !== 'production') {
 
 module.exports = emptyObject;
 }).call(this,require('_process'))
-},{"_process":31}],13:[function(require,module,exports){
+},{"_process":49}],19:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -575,7 +2508,7 @@ function focusNode(node) {
 }
 
 module.exports = focusNode;
-},{}],14:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -611,7 +2544,7 @@ function getActiveElement() /*?DOMElement*/{
 }
 
 module.exports = getActiveElement;
-},{}],15:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -709,7 +2642,7 @@ function getMarkupWrap(nodeName) {
 
 module.exports = getMarkupWrap;
 }).call(this,require('_process'))
-},{"./ExecutionEnvironment":5,"./invariant":19,"_process":31}],16:[function(require,module,exports){
+},{"./ExecutionEnvironment":11,"./invariant":25,"_process":49}],22:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -748,7 +2681,7 @@ function getUnboundedScrollPosition(scrollable) {
 }
 
 module.exports = getUnboundedScrollPosition;
-},{}],17:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -782,7 +2715,7 @@ function hyphenate(string) {
 }
 
 module.exports = hyphenate;
-},{}],18:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -822,7 +2755,7 @@ function hyphenateStyleName(string) {
 }
 
 module.exports = hyphenateStyleName;
-},{"./hyphenate":17}],19:[function(require,module,exports){
+},{"./hyphenate":23}],25:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -875,7 +2808,7 @@ function invariant(condition, format, a, b, c, d, e, f) {
 
 module.exports = invariant;
 }).call(this,require('_process'))
-},{"_process":31}],20:[function(require,module,exports){
+},{"_process":49}],26:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -899,7 +2832,7 @@ function isNode(object) {
 }
 
 module.exports = isNode;
-},{}],21:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -925,7 +2858,7 @@ function isTextNode(object) {
 }
 
 module.exports = isTextNode;
-},{"./isNode":20}],22:[function(require,module,exports){
+},{"./isNode":26}],28:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -976,7 +2909,7 @@ var keyMirror = function (obj) {
 
 module.exports = keyMirror;
 }).call(this,require('_process'))
-},{"./invariant":19,"_process":31}],23:[function(require,module,exports){
+},{"./invariant":25,"_process":49}],29:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -1012,7 +2945,7 @@ var keyOf = function (oneKeyObj) {
 };
 
 module.exports = keyOf;
-},{}],24:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -1064,7 +2997,7 @@ function mapObject(object, callback, context) {
 }
 
 module.exports = mapObject;
-},{}],25:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -1096,7 +3029,7 @@ function memoizeStringOnly(callback) {
 }
 
 module.exports = memoizeStringOnly;
-},{}],26:[function(require,module,exports){
+},{}],32:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -1120,7 +3053,7 @@ if (ExecutionEnvironment.canUseDOM) {
 }
 
 module.exports = performance || {};
-},{"./ExecutionEnvironment":5}],27:[function(require,module,exports){
+},{"./ExecutionEnvironment":11}],33:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -1155,7 +3088,7 @@ if (performance.now) {
 }
 
 module.exports = performanceNow;
-},{"./performance":26}],28:[function(require,module,exports){
+},{"./performance":32}],34:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -1206,7 +3139,7 @@ function shallowEqual(objA, objB) {
 }
 
 module.exports = shallowEqual;
-},{}],29:[function(require,module,exports){
+},{}],35:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -1266,7 +3199,7 @@ function toArray(obj) {
 
 module.exports = toArray;
 }).call(this,require('_process'))
-},{"./invariant":19,"_process":31}],30:[function(require,module,exports){
+},{"./invariant":25,"_process":49}],36:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2014-2015, Facebook, Inc.
@@ -1326,7 +3259,6637 @@ if (process.env.NODE_ENV !== 'production') {
 
 module.exports = warning;
 }).call(this,require('_process'))
-},{"./emptyFunction":11,"_process":31}],31:[function(require,module,exports){
+},{"./emptyFunction":17,"_process":49}],37:[function(require,module,exports){
+exports.read = function (buffer, offset, isLE, mLen, nBytes) {
+  var e, m
+  var eLen = nBytes * 8 - mLen - 1
+  var eMax = (1 << eLen) - 1
+  var eBias = eMax >> 1
+  var nBits = -7
+  var i = isLE ? (nBytes - 1) : 0
+  var d = isLE ? -1 : 1
+  var s = buffer[offset + i]
+
+  i += d
+
+  e = s & ((1 << (-nBits)) - 1)
+  s >>= (-nBits)
+  nBits += eLen
+  for (; nBits > 0; e = e * 256 + buffer[offset + i], i += d, nBits -= 8) {}
+
+  m = e & ((1 << (-nBits)) - 1)
+  e >>= (-nBits)
+  nBits += mLen
+  for (; nBits > 0; m = m * 256 + buffer[offset + i], i += d, nBits -= 8) {}
+
+  if (e === 0) {
+    e = 1 - eBias
+  } else if (e === eMax) {
+    return m ? NaN : ((s ? -1 : 1) * Infinity)
+  } else {
+    m = m + Math.pow(2, mLen)
+    e = e - eBias
+  }
+  return (s ? -1 : 1) * m * Math.pow(2, e - mLen)
+}
+
+exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
+  var e, m, c
+  var eLen = nBytes * 8 - mLen - 1
+  var eMax = (1 << eLen) - 1
+  var eBias = eMax >> 1
+  var rt = (mLen === 23 ? Math.pow(2, -24) - Math.pow(2, -77) : 0)
+  var i = isLE ? 0 : (nBytes - 1)
+  var d = isLE ? 1 : -1
+  var s = value < 0 || (value === 0 && 1 / value < 0) ? 1 : 0
+
+  value = Math.abs(value)
+
+  if (isNaN(value) || value === Infinity) {
+    m = isNaN(value) ? 1 : 0
+    e = eMax
+  } else {
+    e = Math.floor(Math.log(value) / Math.LN2)
+    if (value * (c = Math.pow(2, -e)) < 1) {
+      e--
+      c *= 2
+    }
+    if (e + eBias >= 1) {
+      value += rt / c
+    } else {
+      value += rt * Math.pow(2, 1 - eBias)
+    }
+    if (value * c >= 2) {
+      e++
+      c /= 2
+    }
+
+    if (e + eBias >= eMax) {
+      m = 0
+      e = eMax
+    } else if (e + eBias >= 1) {
+      m = (value * c - 1) * Math.pow(2, mLen)
+      e = e + eBias
+    } else {
+      m = value * Math.pow(2, eBias - 1) * Math.pow(2, mLen)
+      e = 0
+    }
+  }
+
+  for (; mLen >= 8; buffer[offset + i] = m & 0xff, i += d, m /= 256, mLen -= 8) {}
+
+  e = (e << mLen) | m
+  eLen += mLen
+  for (; eLen > 0; buffer[offset + i] = e & 0xff, i += d, e /= 256, eLen -= 8) {}
+
+  buffer[offset + i - d] |= s * 128
+}
+
+},{}],38:[function(require,module,exports){
+if (typeof Object.create === 'function') {
+  // implementation from standard node.js 'util' module
+  module.exports = function inherits(ctor, superCtor) {
+    ctor.super_ = superCtor
+    ctor.prototype = Object.create(superCtor.prototype, {
+      constructor: {
+        value: ctor,
+        enumerable: false,
+        writable: true,
+        configurable: true
+      }
+    });
+  };
+} else {
+  // old school shim for old browsers
+  module.exports = function inherits(ctor, superCtor) {
+    ctor.super_ = superCtor
+    var TempCtor = function () {}
+    TempCtor.prototype = superCtor.prototype
+    ctor.prototype = new TempCtor()
+    ctor.prototype.constructor = ctor
+  }
+}
+
+},{}],39:[function(require,module,exports){
+(function (Buffer){
+//     Int64.js
+//
+//     Copyright (c) 2012 Robert Kieffer
+//     MIT License - http://opensource.org/licenses/mit-license.php
+
+/**
+ * Support for handling 64-bit int numbers in Javascript (node.js)
+ *
+ * JS Numbers are IEEE-754 binary double-precision floats, which limits the
+ * range of values that can be represented with integer precision to:
+ *
+ * 2^^53 <= N <= 2^53
+ *
+ * Int64 objects wrap a node Buffer that holds the 8-bytes of int64 data.  These
+ * objects operate directly on the buffer which means that if they are created
+ * using an existing buffer then setting the value will modify the Buffer, and
+ * vice-versa.
+ *
+ * Internal Representation
+ *
+ * The internal buffer format is Big Endian.  I.e. the most-significant byte is
+ * at buffer[0], the least-significant at buffer[7].  For the purposes of
+ * converting to/from JS native numbers, the value is assumed to be a signed
+ * integer stored in 2's complement form.
+ *
+ * For details about IEEE-754 see:
+ * http://en.wikipedia.org/wiki/Double_precision_floating-point_format
+ */
+
+// Useful masks and values for bit twiddling
+var MASK31 =  0x7fffffff, VAL31 = 0x80000000;
+var MASK32 =  0xffffffff, VAL32 = 0x100000000;
+
+// Map for converting hex octets to strings
+var _HEX = [];
+for (var i = 0; i < 256; i++) {
+  _HEX[i] = (i > 0xF ? '' : '0') + i.toString(16);
+}
+
+//
+// Int64
+//
+
+/**
+ * Constructor accepts any of the following argument types:
+ *
+ * new Int64(buffer[, offset=0]) - Existing Buffer with byte offset
+ * new Int64(string)             - Hex string (throws if n is outside int64 range)
+ * new Int64(number)             - Number (throws if n is outside int64 range)
+ * new Int64(hi, lo)             - Raw bits as two 32-bit values
+ */
+var Int64 = module.exports = function(a1, a2) {
+  if (a1 instanceof Buffer) {
+    this.buffer = a1;
+    this.offset = a2 || 0;
+  } else {
+    this.buffer = this.buffer || new Buffer(8);
+    this.offset = 0;
+    this.setValue.apply(this, arguments);
+  }
+};
+
+
+// Max integer value that JS can accurately represent
+Int64.MAX_INT = Math.pow(2, 53);
+
+// Min integer value that JS can accurately represent
+Int64.MIN_INT = -Math.pow(2, 53);
+
+Int64.prototype = {
+  /**
+   * Do in-place 2's compliment.  See
+   * http://en.wikipedia.org/wiki/Two's_complement
+   */
+  _2scomp: function() {
+    var b = this.buffer, o = this.offset, carry = 1;
+    for (var i = o + 7; i >= o; i--) {
+      var v = (b[i] ^ 0xff) + carry;
+      b[i] = v & 0xff;
+      carry = v >> 8;
+    }
+  },
+
+  /**
+   * Set the value. Takes any of the following arguments:
+   *
+   * setValue(string) - A hexidecimal string
+   * setValue(number) - Number (throws if n is outside int64 range)
+   * setValue(hi, lo) - Raw bits as two 32-bit values
+   */
+  setValue: function(hi, lo) {
+    var negate = false;
+    if (arguments.length == 1) {
+      if (typeof(hi) == 'number') {
+        // Simplify bitfield retrieval by using abs() value.  We restore sign
+        // later
+        negate = hi < 0;
+        hi = Math.abs(hi);
+        lo = hi % VAL32;
+        hi = hi / VAL32;
+        if (hi > VAL32) throw new RangeError(hi  + ' is outside Int64 range');
+        hi = hi | 0;
+      } else if (typeof(hi) == 'string') {
+        hi = (hi + '').replace(/^0x/, '');
+        lo = hi.substr(-8);
+        hi = hi.length > 8 ? hi.substr(0, hi.length - 8) : '';
+        hi = parseInt(hi, 16);
+        lo = parseInt(lo, 16);
+      } else {
+        throw new Error(hi + ' must be a Number or String');
+      }
+    }
+
+    // Technically we should throw if hi or lo is outside int32 range here, but
+    // it's not worth the effort. Anything past the 32'nd bit is ignored.
+
+    // Copy bytes to buffer
+    var b = this.buffer, o = this.offset;
+    for (var i = 7; i >= 0; i--) {
+      b[o+i] = lo & 0xff;
+      lo = i == 4 ? hi : lo >>> 8;
+    }
+
+    // Restore sign of passed argument
+    if (negate) this._2scomp();
+  },
+
+  /**
+   * Convert to a native JS number.
+   *
+   * WARNING: Do not expect this value to be accurate to integer precision for
+   * large (positive or negative) numbers!
+   *
+   * @param allowImprecise If true, no check is performed to verify the
+   * returned value is accurate to integer precision.  If false, imprecise
+   * numbers (very large positive or negative numbers) will be forced to +/-
+   * Infinity.
+   */
+  toNumber: function(allowImprecise) {
+    var b = this.buffer, o = this.offset;
+
+    // Running sum of octets, doing a 2's complement
+    var negate = b[o] & 0x80, x = 0, carry = 1;
+    for (var i = 7, m = 1; i >= 0; i--, m *= 256) {
+      var v = b[o+i];
+
+      // 2's complement for negative numbers
+      if (negate) {
+        v = (v ^ 0xff) + carry;
+        carry = v >> 8;
+        v = v & 0xff;
+      }
+
+      x += v * m;
+    }
+
+    // Return Infinity if we've lost integer precision
+    if (!allowImprecise && x >= Int64.MAX_INT) {
+      return negate ? -Infinity : Infinity;
+    }
+
+    return negate ? -x : x;
+  },
+
+  /**
+   * Convert to a JS Number. Returns +/-Infinity for values that can't be
+   * represented to integer precision.
+   */
+  valueOf: function() {
+    return this.toNumber(false);
+  },
+
+  /**
+   * Return string value
+   *
+   * @param radix Just like Number#toString()'s radix
+   */
+  toString: function(radix) {
+    return this.valueOf().toString(radix || 10);
+  },
+
+  /**
+   * Return a string showing the buffer octets, with MSB on the left.
+   *
+   * @param sep separator string. default is '' (empty string)
+   */
+  toOctetString: function(sep) {
+    var out = new Array(8);
+    var b = this.buffer, o = this.offset;
+    for (var i = 0; i < 8; i++) {
+      out[i] = _HEX[b[o+i]];
+    }
+    return out.join(sep || '');
+  },
+
+  /**
+   * Pretty output in console.log
+   */
+  inspect: function() {
+    return '[Int64 value:' + this + ' octets:' + this.toOctetString(' ') + ']';
+  }
+};
+
+}).call(this,require("buffer").Buffer)
+},{"buffer":7}],40:[function(require,module,exports){
+//
+// Autogenerated by Thrift Compiler (0.9.1)
+//
+// DO NOT EDIT UNLESS YOU ARE SURE THAT YOU KNOW WHAT YOU ARE DOING
+//
+var Thrift = require('thrift').Thrift;
+
+var ttypes = require('./hbase_types');
+//HELPER FUNCTIONS AND STRUCTURES
+
+THBaseService_exists_args = function(args) {
+  this.table = null;
+  this.get = null;
+  if (args) {
+    if (args.table !== undefined) {
+      this.table = args.table;
+    }
+    if (args.get !== undefined) {
+      this.get = args.get;
+    }
+  }
+};
+THBaseService_exists_args.prototype = {};
+THBaseService_exists_args.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+      if (ftype == Thrift.Type.STRING) {
+        this.table = input.readString();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 2:
+      if (ftype == Thrift.Type.STRUCT) {
+        this.get = new ttypes.TGet();
+        this.get.read(input);
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+THBaseService_exists_args.prototype.write = function(output) {
+  output.writeStructBegin('THBaseService_exists_args');
+  if (this.table !== null && this.table !== undefined) {
+    output.writeFieldBegin('table', Thrift.Type.STRING, 1);
+    output.writeString(this.table);
+    output.writeFieldEnd();
+  }
+  if (this.get !== null && this.get !== undefined) {
+    output.writeFieldBegin('get', Thrift.Type.STRUCT, 2);
+    this.get.write(output);
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+THBaseService_exists_result = function(args) {
+  this.success = null;
+  this.io = null;
+  if (args instanceof ttypes.TIOError) {
+    this.io = args;
+    return;
+  }
+  if (args) {
+    if (args.success !== undefined) {
+      this.success = args.success;
+    }
+    if (args.io !== undefined) {
+      this.io = args.io;
+    }
+  }
+};
+THBaseService_exists_result.prototype = {};
+THBaseService_exists_result.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 0:
+      if (ftype == Thrift.Type.BOOL) {
+        this.success = input.readBool();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 1:
+      if (ftype == Thrift.Type.STRUCT) {
+        this.io = new ttypes.TIOError();
+        this.io.read(input);
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+THBaseService_exists_result.prototype.write = function(output) {
+  output.writeStructBegin('THBaseService_exists_result');
+  if (this.success !== null && this.success !== undefined) {
+    output.writeFieldBegin('success', Thrift.Type.BOOL, 0);
+    output.writeBool(this.success);
+    output.writeFieldEnd();
+  }
+  if (this.io !== null && this.io !== undefined) {
+    output.writeFieldBegin('io', Thrift.Type.STRUCT, 1);
+    this.io.write(output);
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+THBaseService_get_args = function(args) {
+  this.table = null;
+  this.get = null;
+  if (args) {
+    if (args.table !== undefined) {
+      this.table = args.table;
+    }
+    if (args.get !== undefined) {
+      this.get = args.get;
+    }
+  }
+};
+THBaseService_get_args.prototype = {};
+THBaseService_get_args.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+      if (ftype == Thrift.Type.STRING) {
+        this.table = input.readString();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 2:
+      if (ftype == Thrift.Type.STRUCT) {
+        this.get = new ttypes.TGet();
+        this.get.read(input);
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+THBaseService_get_args.prototype.write = function(output) {
+  output.writeStructBegin('THBaseService_get_args');
+  if (this.table !== null && this.table !== undefined) {
+    output.writeFieldBegin('table', Thrift.Type.STRING, 1);
+    output.writeString(this.table);
+    output.writeFieldEnd();
+  }
+  if (this.get !== null && this.get !== undefined) {
+    output.writeFieldBegin('get', Thrift.Type.STRUCT, 2);
+    this.get.write(output);
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+THBaseService_get_result = function(args) {
+  this.success = null;
+  this.io = null;
+  if (args instanceof ttypes.TIOError) {
+    this.io = args;
+    return;
+  }
+  if (args) {
+    if (args.success !== undefined) {
+      this.success = args.success;
+    }
+    if (args.io !== undefined) {
+      this.io = args.io;
+    }
+  }
+};
+THBaseService_get_result.prototype = {};
+THBaseService_get_result.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 0:
+      if (ftype == Thrift.Type.STRUCT) {
+        this.success = new ttypes.TResult();
+        this.success.read(input);
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 1:
+      if (ftype == Thrift.Type.STRUCT) {
+        this.io = new ttypes.TIOError();
+        this.io.read(input);
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+THBaseService_get_result.prototype.write = function(output) {
+  output.writeStructBegin('THBaseService_get_result');
+  if (this.success !== null && this.success !== undefined) {
+    output.writeFieldBegin('success', Thrift.Type.STRUCT, 0);
+    this.success.write(output);
+    output.writeFieldEnd();
+  }
+  if (this.io !== null && this.io !== undefined) {
+    output.writeFieldBegin('io', Thrift.Type.STRUCT, 1);
+    this.io.write(output);
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+THBaseService_getMultiple_args = function(args) {
+  this.table = null;
+  this.gets = null;
+  if (args) {
+    if (args.table !== undefined) {
+      this.table = args.table;
+    }
+    if (args.gets !== undefined) {
+      this.gets = args.gets;
+    }
+  }
+};
+THBaseService_getMultiple_args.prototype = {};
+THBaseService_getMultiple_args.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+      if (ftype == Thrift.Type.STRING) {
+        this.table = input.readString();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 2:
+      if (ftype == Thrift.Type.LIST) {
+        var _size132 = 0;
+        var _rtmp3136;
+        this.gets = [];
+        var _etype135 = 0;
+        _rtmp3136 = input.readListBegin();
+        _etype135 = _rtmp3136.etype;
+        _size132 = _rtmp3136.size;
+        for (var _i137 = 0; _i137 < _size132; ++_i137)
+        {
+          var elem138 = null;
+          elem138 = new ttypes.TGet();
+          elem138.read(input);
+          this.gets.push(elem138);
+        }
+        input.readListEnd();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+THBaseService_getMultiple_args.prototype.write = function(output) {
+  output.writeStructBegin('THBaseService_getMultiple_args');
+  if (this.table !== null && this.table !== undefined) {
+    output.writeFieldBegin('table', Thrift.Type.STRING, 1);
+    output.writeString(this.table);
+    output.writeFieldEnd();
+  }
+  if (this.gets !== null && this.gets !== undefined) {
+    output.writeFieldBegin('gets', Thrift.Type.LIST, 2);
+    output.writeListBegin(Thrift.Type.STRUCT, this.gets.length);
+    for (var iter139 in this.gets)
+    {
+      if (this.gets.hasOwnProperty(iter139))
+      {
+        iter139 = this.gets[iter139];
+        iter139.write(output);
+      }
+    }
+    output.writeListEnd();
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+THBaseService_getMultiple_result = function(args) {
+  this.success = null;
+  this.io = null;
+  if (args instanceof ttypes.TIOError) {
+    this.io = args;
+    return;
+  }
+  if (args) {
+    if (args.success !== undefined) {
+      this.success = args.success;
+    }
+    if (args.io !== undefined) {
+      this.io = args.io;
+    }
+  }
+};
+THBaseService_getMultiple_result.prototype = {};
+THBaseService_getMultiple_result.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 0:
+      if (ftype == Thrift.Type.LIST) {
+        var _size140 = 0;
+        var _rtmp3144;
+        this.success = [];
+        var _etype143 = 0;
+        _rtmp3144 = input.readListBegin();
+        _etype143 = _rtmp3144.etype;
+        _size140 = _rtmp3144.size;
+        for (var _i145 = 0; _i145 < _size140; ++_i145)
+        {
+          var elem146 = null;
+          elem146 = new ttypes.TResult();
+          elem146.read(input);
+          this.success.push(elem146);
+        }
+        input.readListEnd();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 1:
+      if (ftype == Thrift.Type.STRUCT) {
+        this.io = new ttypes.TIOError();
+        this.io.read(input);
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+THBaseService_getMultiple_result.prototype.write = function(output) {
+  output.writeStructBegin('THBaseService_getMultiple_result');
+  if (this.success !== null && this.success !== undefined) {
+    output.writeFieldBegin('success', Thrift.Type.LIST, 0);
+    output.writeListBegin(Thrift.Type.STRUCT, this.success.length);
+    for (var iter147 in this.success)
+    {
+      if (this.success.hasOwnProperty(iter147))
+      {
+        iter147 = this.success[iter147];
+        iter147.write(output);
+      }
+    }
+    output.writeListEnd();
+    output.writeFieldEnd();
+  }
+  if (this.io !== null && this.io !== undefined) {
+    output.writeFieldBegin('io', Thrift.Type.STRUCT, 1);
+    this.io.write(output);
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+THBaseService_put_args = function(args) {
+  this.table = null;
+  this.put = null;
+  if (args) {
+    if (args.table !== undefined) {
+      this.table = args.table;
+    }
+    if (args.put !== undefined) {
+      this.put = args.put;
+    }
+  }
+};
+THBaseService_put_args.prototype = {};
+THBaseService_put_args.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+      if (ftype == Thrift.Type.STRING) {
+        this.table = input.readString();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 2:
+      if (ftype == Thrift.Type.STRUCT) {
+        this.put = new ttypes.TPut();
+        this.put.read(input);
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+THBaseService_put_args.prototype.write = function(output) {
+  output.writeStructBegin('THBaseService_put_args');
+  if (this.table !== null && this.table !== undefined) {
+    output.writeFieldBegin('table', Thrift.Type.STRING, 1);
+    output.writeString(this.table);
+    output.writeFieldEnd();
+  }
+  if (this.put !== null && this.put !== undefined) {
+    output.writeFieldBegin('put', Thrift.Type.STRUCT, 2);
+    this.put.write(output);
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+THBaseService_put_result = function(args) {
+  this.io = null;
+  if (args instanceof ttypes.TIOError) {
+    this.io = args;
+    return;
+  }
+  if (args) {
+    if (args.io !== undefined) {
+      this.io = args.io;
+    }
+  }
+};
+THBaseService_put_result.prototype = {};
+THBaseService_put_result.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+      if (ftype == Thrift.Type.STRUCT) {
+        this.io = new ttypes.TIOError();
+        this.io.read(input);
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 0:
+        input.skip(ftype);
+        break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+THBaseService_put_result.prototype.write = function(output) {
+  output.writeStructBegin('THBaseService_put_result');
+  if (this.io !== null && this.io !== undefined) {
+    output.writeFieldBegin('io', Thrift.Type.STRUCT, 1);
+    this.io.write(output);
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+THBaseService_checkAndPut_args = function(args) {
+  this.table = null;
+  this.row = null;
+  this.family = null;
+  this.qualifier = null;
+  this.value = null;
+  this.put = null;
+  if (args) {
+    if (args.table !== undefined) {
+      this.table = args.table;
+    }
+    if (args.row !== undefined) {
+      this.row = args.row;
+    }
+    if (args.family !== undefined) {
+      this.family = args.family;
+    }
+    if (args.qualifier !== undefined) {
+      this.qualifier = args.qualifier;
+    }
+    if (args.value !== undefined) {
+      this.value = args.value;
+    }
+    if (args.put !== undefined) {
+      this.put = args.put;
+    }
+  }
+};
+THBaseService_checkAndPut_args.prototype = {};
+THBaseService_checkAndPut_args.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+      if (ftype == Thrift.Type.STRING) {
+        this.table = input.readString();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 2:
+      if (ftype == Thrift.Type.STRING) {
+        this.row = input.readString();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 3:
+      if (ftype == Thrift.Type.STRING) {
+        this.family = input.readString();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 4:
+      if (ftype == Thrift.Type.STRING) {
+        this.qualifier = input.readString();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 5:
+      if (ftype == Thrift.Type.STRING) {
+        this.value = input.readString();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 6:
+      if (ftype == Thrift.Type.STRUCT) {
+        this.put = new ttypes.TPut();
+        this.put.read(input);
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+THBaseService_checkAndPut_args.prototype.write = function(output) {
+  output.writeStructBegin('THBaseService_checkAndPut_args');
+  if (this.table !== null && this.table !== undefined) {
+    output.writeFieldBegin('table', Thrift.Type.STRING, 1);
+    output.writeString(this.table);
+    output.writeFieldEnd();
+  }
+  if (this.row !== null && this.row !== undefined) {
+    output.writeFieldBegin('row', Thrift.Type.STRING, 2);
+    output.writeString(this.row);
+    output.writeFieldEnd();
+  }
+  if (this.family !== null && this.family !== undefined) {
+    output.writeFieldBegin('family', Thrift.Type.STRING, 3);
+    output.writeString(this.family);
+    output.writeFieldEnd();
+  }
+  if (this.qualifier !== null && this.qualifier !== undefined) {
+    output.writeFieldBegin('qualifier', Thrift.Type.STRING, 4);
+    output.writeString(this.qualifier);
+    output.writeFieldEnd();
+  }
+  if (this.value !== null && this.value !== undefined) {
+    output.writeFieldBegin('value', Thrift.Type.STRING, 5);
+    output.writeString(this.value);
+    output.writeFieldEnd();
+  }
+  if (this.put !== null && this.put !== undefined) {
+    output.writeFieldBegin('put', Thrift.Type.STRUCT, 6);
+    this.put.write(output);
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+THBaseService_checkAndPut_result = function(args) {
+  this.success = null;
+  this.io = null;
+  if (args instanceof ttypes.TIOError) {
+    this.io = args;
+    return;
+  }
+  if (args) {
+    if (args.success !== undefined) {
+      this.success = args.success;
+    }
+    if (args.io !== undefined) {
+      this.io = args.io;
+    }
+  }
+};
+THBaseService_checkAndPut_result.prototype = {};
+THBaseService_checkAndPut_result.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 0:
+      if (ftype == Thrift.Type.BOOL) {
+        this.success = input.readBool();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 1:
+      if (ftype == Thrift.Type.STRUCT) {
+        this.io = new ttypes.TIOError();
+        this.io.read(input);
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+THBaseService_checkAndPut_result.prototype.write = function(output) {
+  output.writeStructBegin('THBaseService_checkAndPut_result');
+  if (this.success !== null && this.success !== undefined) {
+    output.writeFieldBegin('success', Thrift.Type.BOOL, 0);
+    output.writeBool(this.success);
+    output.writeFieldEnd();
+  }
+  if (this.io !== null && this.io !== undefined) {
+    output.writeFieldBegin('io', Thrift.Type.STRUCT, 1);
+    this.io.write(output);
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+THBaseService_putMultiple_args = function(args) {
+  this.table = null;
+  this.puts = null;
+  if (args) {
+    if (args.table !== undefined) {
+      this.table = args.table;
+    }
+    if (args.puts !== undefined) {
+      this.puts = args.puts;
+    }
+  }
+};
+THBaseService_putMultiple_args.prototype = {};
+THBaseService_putMultiple_args.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+      if (ftype == Thrift.Type.STRING) {
+        this.table = input.readString();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 2:
+      if (ftype == Thrift.Type.LIST) {
+        var _size148 = 0;
+        var _rtmp3152;
+        this.puts = [];
+        var _etype151 = 0;
+        _rtmp3152 = input.readListBegin();
+        _etype151 = _rtmp3152.etype;
+        _size148 = _rtmp3152.size;
+        for (var _i153 = 0; _i153 < _size148; ++_i153)
+        {
+          var elem154 = null;
+          elem154 = new ttypes.TPut();
+          elem154.read(input);
+          this.puts.push(elem154);
+        }
+        input.readListEnd();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+THBaseService_putMultiple_args.prototype.write = function(output) {
+  output.writeStructBegin('THBaseService_putMultiple_args');
+  if (this.table !== null && this.table !== undefined) {
+    output.writeFieldBegin('table', Thrift.Type.STRING, 1);
+    output.writeString(this.table);
+    output.writeFieldEnd();
+  }
+  if (this.puts !== null && this.puts !== undefined) {
+    output.writeFieldBegin('puts', Thrift.Type.LIST, 2);
+    output.writeListBegin(Thrift.Type.STRUCT, this.puts.length);
+    for (var iter155 in this.puts)
+    {
+      if (this.puts.hasOwnProperty(iter155))
+      {
+        iter155 = this.puts[iter155];
+        iter155.write(output);
+      }
+    }
+    output.writeListEnd();
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+THBaseService_putMultiple_result = function(args) {
+  this.io = null;
+  if (args instanceof ttypes.TIOError) {
+    this.io = args;
+    return;
+  }
+  if (args) {
+    if (args.io !== undefined) {
+      this.io = args.io;
+    }
+  }
+};
+THBaseService_putMultiple_result.prototype = {};
+THBaseService_putMultiple_result.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+      if (ftype == Thrift.Type.STRUCT) {
+        this.io = new ttypes.TIOError();
+        this.io.read(input);
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 0:
+        input.skip(ftype);
+        break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+THBaseService_putMultiple_result.prototype.write = function(output) {
+  output.writeStructBegin('THBaseService_putMultiple_result');
+  if (this.io !== null && this.io !== undefined) {
+    output.writeFieldBegin('io', Thrift.Type.STRUCT, 1);
+    this.io.write(output);
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+THBaseService_deleteSingle_args = function(args) {
+  this.table = null;
+  this.deleteSingle = null;
+  if (args) {
+    if (args.table !== undefined) {
+      this.table = args.table;
+    }
+    if (args.deleteSingle !== undefined) {
+      this.deleteSingle = args.deleteSingle;
+    }
+  }
+};
+THBaseService_deleteSingle_args.prototype = {};
+THBaseService_deleteSingle_args.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+      if (ftype == Thrift.Type.STRING) {
+        this.table = input.readString();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 2:
+      if (ftype == Thrift.Type.STRUCT) {
+        this.deleteSingle = new ttypes.TDelete();
+        this.deleteSingle.read(input);
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+THBaseService_deleteSingle_args.prototype.write = function(output) {
+  output.writeStructBegin('THBaseService_deleteSingle_args');
+  if (this.table !== null && this.table !== undefined) {
+    output.writeFieldBegin('table', Thrift.Type.STRING, 1);
+    output.writeString(this.table);
+    output.writeFieldEnd();
+  }
+  if (this.deleteSingle !== null && this.deleteSingle !== undefined) {
+    output.writeFieldBegin('deleteSingle', Thrift.Type.STRUCT, 2);
+    this.deleteSingle.write(output);
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+THBaseService_deleteSingle_result = function(args) {
+  this.io = null;
+  if (args instanceof ttypes.TIOError) {
+    this.io = args;
+    return;
+  }
+  if (args) {
+    if (args.io !== undefined) {
+      this.io = args.io;
+    }
+  }
+};
+THBaseService_deleteSingle_result.prototype = {};
+THBaseService_deleteSingle_result.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+      if (ftype == Thrift.Type.STRUCT) {
+        this.io = new ttypes.TIOError();
+        this.io.read(input);
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 0:
+        input.skip(ftype);
+        break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+THBaseService_deleteSingle_result.prototype.write = function(output) {
+  output.writeStructBegin('THBaseService_deleteSingle_result');
+  if (this.io !== null && this.io !== undefined) {
+    output.writeFieldBegin('io', Thrift.Type.STRUCT, 1);
+    this.io.write(output);
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+THBaseService_deleteMultiple_args = function(args) {
+  this.table = null;
+  this.deletes = null;
+  if (args) {
+    if (args.table !== undefined) {
+      this.table = args.table;
+    }
+    if (args.deletes !== undefined) {
+      this.deletes = args.deletes;
+    }
+  }
+};
+THBaseService_deleteMultiple_args.prototype = {};
+THBaseService_deleteMultiple_args.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+      if (ftype == Thrift.Type.STRING) {
+        this.table = input.readString();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 2:
+      if (ftype == Thrift.Type.LIST) {
+        var _size156 = 0;
+        var _rtmp3160;
+        this.deletes = [];
+        var _etype159 = 0;
+        _rtmp3160 = input.readListBegin();
+        _etype159 = _rtmp3160.etype;
+        _size156 = _rtmp3160.size;
+        for (var _i161 = 0; _i161 < _size156; ++_i161)
+        {
+          var elem162 = null;
+          elem162 = new ttypes.TDelete();
+          elem162.read(input);
+          this.deletes.push(elem162);
+        }
+        input.readListEnd();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+THBaseService_deleteMultiple_args.prototype.write = function(output) {
+  output.writeStructBegin('THBaseService_deleteMultiple_args');
+  if (this.table !== null && this.table !== undefined) {
+    output.writeFieldBegin('table', Thrift.Type.STRING, 1);
+    output.writeString(this.table);
+    output.writeFieldEnd();
+  }
+  if (this.deletes !== null && this.deletes !== undefined) {
+    output.writeFieldBegin('deletes', Thrift.Type.LIST, 2);
+    output.writeListBegin(Thrift.Type.STRUCT, this.deletes.length);
+    for (var iter163 in this.deletes)
+    {
+      if (this.deletes.hasOwnProperty(iter163))
+      {
+        iter163 = this.deletes[iter163];
+        iter163.write(output);
+      }
+    }
+    output.writeListEnd();
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+THBaseService_deleteMultiple_result = function(args) {
+  this.success = null;
+  this.io = null;
+  if (args instanceof ttypes.TIOError) {
+    this.io = args;
+    return;
+  }
+  if (args) {
+    if (args.success !== undefined) {
+      this.success = args.success;
+    }
+    if (args.io !== undefined) {
+      this.io = args.io;
+    }
+  }
+};
+THBaseService_deleteMultiple_result.prototype = {};
+THBaseService_deleteMultiple_result.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 0:
+      if (ftype == Thrift.Type.LIST) {
+        var _size164 = 0;
+        var _rtmp3168;
+        this.success = [];
+        var _etype167 = 0;
+        _rtmp3168 = input.readListBegin();
+        _etype167 = _rtmp3168.etype;
+        _size164 = _rtmp3168.size;
+        for (var _i169 = 0; _i169 < _size164; ++_i169)
+        {
+          var elem170 = null;
+          elem170 = new ttypes.TDelete();
+          elem170.read(input);
+          this.success.push(elem170);
+        }
+        input.readListEnd();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 1:
+      if (ftype == Thrift.Type.STRUCT) {
+        this.io = new ttypes.TIOError();
+        this.io.read(input);
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+THBaseService_deleteMultiple_result.prototype.write = function(output) {
+  output.writeStructBegin('THBaseService_deleteMultiple_result');
+  if (this.success !== null && this.success !== undefined) {
+    output.writeFieldBegin('success', Thrift.Type.LIST, 0);
+    output.writeListBegin(Thrift.Type.STRUCT, this.success.length);
+    for (var iter171 in this.success)
+    {
+      if (this.success.hasOwnProperty(iter171))
+      {
+        iter171 = this.success[iter171];
+        iter171.write(output);
+      }
+    }
+    output.writeListEnd();
+    output.writeFieldEnd();
+  }
+  if (this.io !== null && this.io !== undefined) {
+    output.writeFieldBegin('io', Thrift.Type.STRUCT, 1);
+    this.io.write(output);
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+THBaseService_checkAndDelete_args = function(args) {
+  this.table = null;
+  this.row = null;
+  this.family = null;
+  this.qualifier = null;
+  this.value = null;
+  this.deleteSingle = null;
+  if (args) {
+    if (args.table !== undefined) {
+      this.table = args.table;
+    }
+    if (args.row !== undefined) {
+      this.row = args.row;
+    }
+    if (args.family !== undefined) {
+      this.family = args.family;
+    }
+    if (args.qualifier !== undefined) {
+      this.qualifier = args.qualifier;
+    }
+    if (args.value !== undefined) {
+      this.value = args.value;
+    }
+    if (args.deleteSingle !== undefined) {
+      this.deleteSingle = args.deleteSingle;
+    }
+  }
+};
+THBaseService_checkAndDelete_args.prototype = {};
+THBaseService_checkAndDelete_args.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+      if (ftype == Thrift.Type.STRING) {
+        this.table = input.readString();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 2:
+      if (ftype == Thrift.Type.STRING) {
+        this.row = input.readString();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 3:
+      if (ftype == Thrift.Type.STRING) {
+        this.family = input.readString();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 4:
+      if (ftype == Thrift.Type.STRING) {
+        this.qualifier = input.readString();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 5:
+      if (ftype == Thrift.Type.STRING) {
+        this.value = input.readString();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 6:
+      if (ftype == Thrift.Type.STRUCT) {
+        this.deleteSingle = new ttypes.TDelete();
+        this.deleteSingle.read(input);
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+THBaseService_checkAndDelete_args.prototype.write = function(output) {
+  output.writeStructBegin('THBaseService_checkAndDelete_args');
+  if (this.table !== null && this.table !== undefined) {
+    output.writeFieldBegin('table', Thrift.Type.STRING, 1);
+    output.writeString(this.table);
+    output.writeFieldEnd();
+  }
+  if (this.row !== null && this.row !== undefined) {
+    output.writeFieldBegin('row', Thrift.Type.STRING, 2);
+    output.writeString(this.row);
+    output.writeFieldEnd();
+  }
+  if (this.family !== null && this.family !== undefined) {
+    output.writeFieldBegin('family', Thrift.Type.STRING, 3);
+    output.writeString(this.family);
+    output.writeFieldEnd();
+  }
+  if (this.qualifier !== null && this.qualifier !== undefined) {
+    output.writeFieldBegin('qualifier', Thrift.Type.STRING, 4);
+    output.writeString(this.qualifier);
+    output.writeFieldEnd();
+  }
+  if (this.value !== null && this.value !== undefined) {
+    output.writeFieldBegin('value', Thrift.Type.STRING, 5);
+    output.writeString(this.value);
+    output.writeFieldEnd();
+  }
+  if (this.deleteSingle !== null && this.deleteSingle !== undefined) {
+    output.writeFieldBegin('deleteSingle', Thrift.Type.STRUCT, 6);
+    this.deleteSingle.write(output);
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+THBaseService_checkAndDelete_result = function(args) {
+  this.success = null;
+  this.io = null;
+  if (args instanceof ttypes.TIOError) {
+    this.io = args;
+    return;
+  }
+  if (args) {
+    if (args.success !== undefined) {
+      this.success = args.success;
+    }
+    if (args.io !== undefined) {
+      this.io = args.io;
+    }
+  }
+};
+THBaseService_checkAndDelete_result.prototype = {};
+THBaseService_checkAndDelete_result.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 0:
+      if (ftype == Thrift.Type.BOOL) {
+        this.success = input.readBool();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 1:
+      if (ftype == Thrift.Type.STRUCT) {
+        this.io = new ttypes.TIOError();
+        this.io.read(input);
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+THBaseService_checkAndDelete_result.prototype.write = function(output) {
+  output.writeStructBegin('THBaseService_checkAndDelete_result');
+  if (this.success !== null && this.success !== undefined) {
+    output.writeFieldBegin('success', Thrift.Type.BOOL, 0);
+    output.writeBool(this.success);
+    output.writeFieldEnd();
+  }
+  if (this.io !== null && this.io !== undefined) {
+    output.writeFieldBegin('io', Thrift.Type.STRUCT, 1);
+    this.io.write(output);
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+THBaseService_increment_args = function(args) {
+  this.table = null;
+  this.increment = null;
+  if (args) {
+    if (args.table !== undefined) {
+      this.table = args.table;
+    }
+    if (args.increment !== undefined) {
+      this.increment = args.increment;
+    }
+  }
+};
+THBaseService_increment_args.prototype = {};
+THBaseService_increment_args.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+      if (ftype == Thrift.Type.STRING) {
+        this.table = input.readString();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 2:
+      if (ftype == Thrift.Type.STRUCT) {
+        this.increment = new ttypes.TIncrement();
+        this.increment.read(input);
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+THBaseService_increment_args.prototype.write = function(output) {
+  output.writeStructBegin('THBaseService_increment_args');
+  if (this.table !== null && this.table !== undefined) {
+    output.writeFieldBegin('table', Thrift.Type.STRING, 1);
+    output.writeString(this.table);
+    output.writeFieldEnd();
+  }
+  if (this.increment !== null && this.increment !== undefined) {
+    output.writeFieldBegin('increment', Thrift.Type.STRUCT, 2);
+    this.increment.write(output);
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+THBaseService_increment_result = function(args) {
+  this.success = null;
+  this.io = null;
+  if (args instanceof ttypes.TIOError) {
+    this.io = args;
+    return;
+  }
+  if (args) {
+    if (args.success !== undefined) {
+      this.success = args.success;
+    }
+    if (args.io !== undefined) {
+      this.io = args.io;
+    }
+  }
+};
+THBaseService_increment_result.prototype = {};
+THBaseService_increment_result.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 0:
+      if (ftype == Thrift.Type.STRUCT) {
+        this.success = new ttypes.TResult();
+        this.success.read(input);
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 1:
+      if (ftype == Thrift.Type.STRUCT) {
+        this.io = new ttypes.TIOError();
+        this.io.read(input);
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+THBaseService_increment_result.prototype.write = function(output) {
+  output.writeStructBegin('THBaseService_increment_result');
+  if (this.success !== null && this.success !== undefined) {
+    output.writeFieldBegin('success', Thrift.Type.STRUCT, 0);
+    this.success.write(output);
+    output.writeFieldEnd();
+  }
+  if (this.io !== null && this.io !== undefined) {
+    output.writeFieldBegin('io', Thrift.Type.STRUCT, 1);
+    this.io.write(output);
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+THBaseService_append_args = function(args) {
+  this.table = null;
+  this.append = null;
+  if (args) {
+    if (args.table !== undefined) {
+      this.table = args.table;
+    }
+    if (args.append !== undefined) {
+      this.append = args.append;
+    }
+  }
+};
+THBaseService_append_args.prototype = {};
+THBaseService_append_args.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+      if (ftype == Thrift.Type.STRING) {
+        this.table = input.readString();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 2:
+      if (ftype == Thrift.Type.STRUCT) {
+        this.append = new ttypes.TAppend();
+        this.append.read(input);
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+THBaseService_append_args.prototype.write = function(output) {
+  output.writeStructBegin('THBaseService_append_args');
+  if (this.table !== null && this.table !== undefined) {
+    output.writeFieldBegin('table', Thrift.Type.STRING, 1);
+    output.writeString(this.table);
+    output.writeFieldEnd();
+  }
+  if (this.append !== null && this.append !== undefined) {
+    output.writeFieldBegin('append', Thrift.Type.STRUCT, 2);
+    this.append.write(output);
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+THBaseService_append_result = function(args) {
+  this.success = null;
+  this.io = null;
+  if (args instanceof ttypes.TIOError) {
+    this.io = args;
+    return;
+  }
+  if (args) {
+    if (args.success !== undefined) {
+      this.success = args.success;
+    }
+    if (args.io !== undefined) {
+      this.io = args.io;
+    }
+  }
+};
+THBaseService_append_result.prototype = {};
+THBaseService_append_result.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 0:
+      if (ftype == Thrift.Type.STRUCT) {
+        this.success = new ttypes.TResult();
+        this.success.read(input);
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 1:
+      if (ftype == Thrift.Type.STRUCT) {
+        this.io = new ttypes.TIOError();
+        this.io.read(input);
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+THBaseService_append_result.prototype.write = function(output) {
+  output.writeStructBegin('THBaseService_append_result');
+  if (this.success !== null && this.success !== undefined) {
+    output.writeFieldBegin('success', Thrift.Type.STRUCT, 0);
+    this.success.write(output);
+    output.writeFieldEnd();
+  }
+  if (this.io !== null && this.io !== undefined) {
+    output.writeFieldBegin('io', Thrift.Type.STRUCT, 1);
+    this.io.write(output);
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+THBaseService_openScanner_args = function(args) {
+  this.table = null;
+  this.scan = null;
+  if (args) {
+    if (args.table !== undefined) {
+      this.table = args.table;
+    }
+    if (args.scan !== undefined) {
+      this.scan = args.scan;
+    }
+  }
+};
+THBaseService_openScanner_args.prototype = {};
+THBaseService_openScanner_args.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+      if (ftype == Thrift.Type.STRING) {
+        this.table = input.readString();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 2:
+      if (ftype == Thrift.Type.STRUCT) {
+        this.scan = new ttypes.TScan();
+        this.scan.read(input);
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+THBaseService_openScanner_args.prototype.write = function(output) {
+  output.writeStructBegin('THBaseService_openScanner_args');
+  if (this.table !== null && this.table !== undefined) {
+    output.writeFieldBegin('table', Thrift.Type.STRING, 1);
+    output.writeString(this.table);
+    output.writeFieldEnd();
+  }
+  if (this.scan !== null && this.scan !== undefined) {
+    output.writeFieldBegin('scan', Thrift.Type.STRUCT, 2);
+    this.scan.write(output);
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+THBaseService_openScanner_result = function(args) {
+  this.success = null;
+  this.io = null;
+  if (args instanceof ttypes.TIOError) {
+    this.io = args;
+    return;
+  }
+  if (args) {
+    if (args.success !== undefined) {
+      this.success = args.success;
+    }
+    if (args.io !== undefined) {
+      this.io = args.io;
+    }
+  }
+};
+THBaseService_openScanner_result.prototype = {};
+THBaseService_openScanner_result.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 0:
+      if (ftype == Thrift.Type.I32) {
+        this.success = input.readI32();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 1:
+      if (ftype == Thrift.Type.STRUCT) {
+        this.io = new ttypes.TIOError();
+        this.io.read(input);
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+THBaseService_openScanner_result.prototype.write = function(output) {
+  output.writeStructBegin('THBaseService_openScanner_result');
+  if (this.success !== null && this.success !== undefined) {
+    output.writeFieldBegin('success', Thrift.Type.I32, 0);
+    output.writeI32(this.success);
+    output.writeFieldEnd();
+  }
+  if (this.io !== null && this.io !== undefined) {
+    output.writeFieldBegin('io', Thrift.Type.STRUCT, 1);
+    this.io.write(output);
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+THBaseService_getScannerRows_args = function(args) {
+  this.scannerId = null;
+  this.numRows = 1;
+  if (args) {
+    if (args.scannerId !== undefined) {
+      this.scannerId = args.scannerId;
+    }
+    if (args.numRows !== undefined) {
+      this.numRows = args.numRows;
+    }
+  }
+};
+THBaseService_getScannerRows_args.prototype = {};
+THBaseService_getScannerRows_args.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+      if (ftype == Thrift.Type.I32) {
+        this.scannerId = input.readI32();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 2:
+      if (ftype == Thrift.Type.I32) {
+        this.numRows = input.readI32();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+THBaseService_getScannerRows_args.prototype.write = function(output) {
+  output.writeStructBegin('THBaseService_getScannerRows_args');
+  if (this.scannerId !== null && this.scannerId !== undefined) {
+    output.writeFieldBegin('scannerId', Thrift.Type.I32, 1);
+    output.writeI32(this.scannerId);
+    output.writeFieldEnd();
+  }
+  if (this.numRows !== null && this.numRows !== undefined) {
+    output.writeFieldBegin('numRows', Thrift.Type.I32, 2);
+    output.writeI32(this.numRows);
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+THBaseService_getScannerRows_result = function(args) {
+  this.success = null;
+  this.io = null;
+  this.ia = null;
+  if (args instanceof ttypes.TIOError) {
+    this.io = args;
+    return;
+  }
+  if (args instanceof ttypes.TIllegalArgument) {
+    this.ia = args;
+    return;
+  }
+  if (args) {
+    if (args.success !== undefined) {
+      this.success = args.success;
+    }
+    if (args.io !== undefined) {
+      this.io = args.io;
+    }
+    if (args.ia !== undefined) {
+      this.ia = args.ia;
+    }
+  }
+};
+THBaseService_getScannerRows_result.prototype = {};
+THBaseService_getScannerRows_result.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 0:
+      if (ftype == Thrift.Type.LIST) {
+        var _size172 = 0;
+        var _rtmp3176;
+        this.success = [];
+        var _etype175 = 0;
+        _rtmp3176 = input.readListBegin();
+        _etype175 = _rtmp3176.etype;
+        _size172 = _rtmp3176.size;
+        for (var _i177 = 0; _i177 < _size172; ++_i177)
+        {
+          var elem178 = null;
+          elem178 = new ttypes.TResult();
+          elem178.read(input);
+          this.success.push(elem178);
+        }
+        input.readListEnd();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 1:
+      if (ftype == Thrift.Type.STRUCT) {
+        this.io = new ttypes.TIOError();
+        this.io.read(input);
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 2:
+      if (ftype == Thrift.Type.STRUCT) {
+        this.ia = new ttypes.TIllegalArgument();
+        this.ia.read(input);
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+THBaseService_getScannerRows_result.prototype.write = function(output) {
+  output.writeStructBegin('THBaseService_getScannerRows_result');
+  if (this.success !== null && this.success !== undefined) {
+    output.writeFieldBegin('success', Thrift.Type.LIST, 0);
+    output.writeListBegin(Thrift.Type.STRUCT, this.success.length);
+    for (var iter179 in this.success)
+    {
+      if (this.success.hasOwnProperty(iter179))
+      {
+        iter179 = this.success[iter179];
+        iter179.write(output);
+      }
+    }
+    output.writeListEnd();
+    output.writeFieldEnd();
+  }
+  if (this.io !== null && this.io !== undefined) {
+    output.writeFieldBegin('io', Thrift.Type.STRUCT, 1);
+    this.io.write(output);
+    output.writeFieldEnd();
+  }
+  if (this.ia !== null && this.ia !== undefined) {
+    output.writeFieldBegin('ia', Thrift.Type.STRUCT, 2);
+    this.ia.write(output);
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+THBaseService_closeScanner_args = function(args) {
+  this.scannerId = null;
+  if (args) {
+    if (args.scannerId !== undefined) {
+      this.scannerId = args.scannerId;
+    }
+  }
+};
+THBaseService_closeScanner_args.prototype = {};
+THBaseService_closeScanner_args.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+      if (ftype == Thrift.Type.I32) {
+        this.scannerId = input.readI32();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 0:
+        input.skip(ftype);
+        break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+THBaseService_closeScanner_args.prototype.write = function(output) {
+  output.writeStructBegin('THBaseService_closeScanner_args');
+  if (this.scannerId !== null && this.scannerId !== undefined) {
+    output.writeFieldBegin('scannerId', Thrift.Type.I32, 1);
+    output.writeI32(this.scannerId);
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+THBaseService_closeScanner_result = function(args) {
+  this.io = null;
+  this.ia = null;
+  if (args instanceof ttypes.TIOError) {
+    this.io = args;
+    return;
+  }
+  if (args instanceof ttypes.TIllegalArgument) {
+    this.ia = args;
+    return;
+  }
+  if (args) {
+    if (args.io !== undefined) {
+      this.io = args.io;
+    }
+    if (args.ia !== undefined) {
+      this.ia = args.ia;
+    }
+  }
+};
+THBaseService_closeScanner_result.prototype = {};
+THBaseService_closeScanner_result.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+      if (ftype == Thrift.Type.STRUCT) {
+        this.io = new ttypes.TIOError();
+        this.io.read(input);
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 2:
+      if (ftype == Thrift.Type.STRUCT) {
+        this.ia = new ttypes.TIllegalArgument();
+        this.ia.read(input);
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+THBaseService_closeScanner_result.prototype.write = function(output) {
+  output.writeStructBegin('THBaseService_closeScanner_result');
+  if (this.io !== null && this.io !== undefined) {
+    output.writeFieldBegin('io', Thrift.Type.STRUCT, 1);
+    this.io.write(output);
+    output.writeFieldEnd();
+  }
+  if (this.ia !== null && this.ia !== undefined) {
+    output.writeFieldBegin('ia', Thrift.Type.STRUCT, 2);
+    this.ia.write(output);
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+THBaseService_mutateRow_args = function(args) {
+  this.table = null;
+  this.rowMutations = null;
+  if (args) {
+    if (args.table !== undefined) {
+      this.table = args.table;
+    }
+    if (args.rowMutations !== undefined) {
+      this.rowMutations = args.rowMutations;
+    }
+  }
+};
+THBaseService_mutateRow_args.prototype = {};
+THBaseService_mutateRow_args.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+      if (ftype == Thrift.Type.STRING) {
+        this.table = input.readString();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 2:
+      if (ftype == Thrift.Type.STRUCT) {
+        this.rowMutations = new ttypes.TRowMutations();
+        this.rowMutations.read(input);
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+THBaseService_mutateRow_args.prototype.write = function(output) {
+  output.writeStructBegin('THBaseService_mutateRow_args');
+  if (this.table !== null && this.table !== undefined) {
+    output.writeFieldBegin('table', Thrift.Type.STRING, 1);
+    output.writeString(this.table);
+    output.writeFieldEnd();
+  }
+  if (this.rowMutations !== null && this.rowMutations !== undefined) {
+    output.writeFieldBegin('rowMutations', Thrift.Type.STRUCT, 2);
+    this.rowMutations.write(output);
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+THBaseService_mutateRow_result = function(args) {
+  this.io = null;
+  if (args instanceof ttypes.TIOError) {
+    this.io = args;
+    return;
+  }
+  if (args) {
+    if (args.io !== undefined) {
+      this.io = args.io;
+    }
+  }
+};
+THBaseService_mutateRow_result.prototype = {};
+THBaseService_mutateRow_result.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+      if (ftype == Thrift.Type.STRUCT) {
+        this.io = new ttypes.TIOError();
+        this.io.read(input);
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 0:
+        input.skip(ftype);
+        break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+THBaseService_mutateRow_result.prototype.write = function(output) {
+  output.writeStructBegin('THBaseService_mutateRow_result');
+  if (this.io !== null && this.io !== undefined) {
+    output.writeFieldBegin('io', Thrift.Type.STRUCT, 1);
+    this.io.write(output);
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+THBaseService_getScannerResults_args = function(args) {
+  this.table = null;
+  this.scan = null;
+  this.numRows = 1;
+  if (args) {
+    if (args.table !== undefined) {
+      this.table = args.table;
+    }
+    if (args.scan !== undefined) {
+      this.scan = args.scan;
+    }
+    if (args.numRows !== undefined) {
+      this.numRows = args.numRows;
+    }
+  }
+};
+THBaseService_getScannerResults_args.prototype = {};
+THBaseService_getScannerResults_args.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+      if (ftype == Thrift.Type.STRING) {
+        this.table = input.readString();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 2:
+      if (ftype == Thrift.Type.STRUCT) {
+        this.scan = new ttypes.TScan();
+        this.scan.read(input);
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 3:
+      if (ftype == Thrift.Type.I32) {
+        this.numRows = input.readI32();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+THBaseService_getScannerResults_args.prototype.write = function(output) {
+  output.writeStructBegin('THBaseService_getScannerResults_args');
+  if (this.table !== null && this.table !== undefined) {
+    output.writeFieldBegin('table', Thrift.Type.STRING, 1);
+    output.writeString(this.table);
+    output.writeFieldEnd();
+  }
+  if (this.scan !== null && this.scan !== undefined) {
+    output.writeFieldBegin('scan', Thrift.Type.STRUCT, 2);
+    this.scan.write(output);
+    output.writeFieldEnd();
+  }
+  if (this.numRows !== null && this.numRows !== undefined) {
+    output.writeFieldBegin('numRows', Thrift.Type.I32, 3);
+    output.writeI32(this.numRows);
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+THBaseService_getScannerResults_result = function(args) {
+  this.success = null;
+  this.io = null;
+  if (args instanceof ttypes.TIOError) {
+    this.io = args;
+    return;
+  }
+  if (args) {
+    if (args.success !== undefined) {
+      this.success = args.success;
+    }
+    if (args.io !== undefined) {
+      this.io = args.io;
+    }
+  }
+};
+THBaseService_getScannerResults_result.prototype = {};
+THBaseService_getScannerResults_result.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 0:
+      if (ftype == Thrift.Type.LIST) {
+        var _size180 = 0;
+        var _rtmp3184;
+        this.success = [];
+        var _etype183 = 0;
+        _rtmp3184 = input.readListBegin();
+        _etype183 = _rtmp3184.etype;
+        _size180 = _rtmp3184.size;
+        for (var _i185 = 0; _i185 < _size180; ++_i185)
+        {
+          var elem186 = null;
+          elem186 = new ttypes.TResult();
+          elem186.read(input);
+          this.success.push(elem186);
+        }
+        input.readListEnd();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 1:
+      if (ftype == Thrift.Type.STRUCT) {
+        this.io = new ttypes.TIOError();
+        this.io.read(input);
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+THBaseService_getScannerResults_result.prototype.write = function(output) {
+  output.writeStructBegin('THBaseService_getScannerResults_result');
+  if (this.success !== null && this.success !== undefined) {
+    output.writeFieldBegin('success', Thrift.Type.LIST, 0);
+    output.writeListBegin(Thrift.Type.STRUCT, this.success.length);
+    for (var iter187 in this.success)
+    {
+      if (this.success.hasOwnProperty(iter187))
+      {
+        iter187 = this.success[iter187];
+        iter187.write(output);
+      }
+    }
+    output.writeListEnd();
+    output.writeFieldEnd();
+  }
+  if (this.io !== null && this.io !== undefined) {
+    output.writeFieldBegin('io', Thrift.Type.STRUCT, 1);
+    this.io.write(output);
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+THBaseServiceClient = exports.Client = function(output, pClass) {
+    this.output = output;
+    this.pClass = pClass;
+    this.seqid = 0;
+    this._reqs = {};
+};
+THBaseServiceClient.prototype = {};
+THBaseServiceClient.prototype.exists = function(table, get, callback) {
+  this.seqid += 1;
+  this._reqs[this.seqid] = callback;
+  this.send_exists(table, get);
+};
+
+THBaseServiceClient.prototype.send_exists = function(table, get) {
+  var output = new this.pClass(this.output);
+  output.writeMessageBegin('exists', Thrift.MessageType.CALL, this.seqid);
+  var args = new THBaseService_exists_args();
+  args.table = table;
+  args.get = get;
+  args.write(output);
+  output.writeMessageEnd();
+  return this.output.flush();
+};
+
+THBaseServiceClient.prototype.recv_exists = function(input,mtype,rseqid) {
+  var callback = this._reqs[rseqid] || function() {};
+  delete this._reqs[rseqid];
+  if (mtype == Thrift.MessageType.EXCEPTION) {
+    var x = new Thrift.TApplicationException();
+    x.read(input);
+    input.readMessageEnd();
+    return callback(x);
+  }
+  var result = new THBaseService_exists_result();
+  result.read(input);
+  input.readMessageEnd();
+
+  if (null !== result.io) {
+    return callback(result.io);
+  }
+  if (null !== result.success) {
+    return callback(null, result.success);
+  }
+  return callback('exists failed: unknown result');
+};
+THBaseServiceClient.prototype.get = function(table, get, callback) {
+  this.seqid += 1;
+  this._reqs[this.seqid] = callback;
+  this.send_get(table, get);
+};
+
+THBaseServiceClient.prototype.send_get = function(table, get) {
+  var output = new this.pClass(this.output);
+  output.writeMessageBegin('get', Thrift.MessageType.CALL, this.seqid);
+  var args = new THBaseService_get_args();
+  args.table = table;
+  args.get = get;
+  args.write(output);
+  output.writeMessageEnd();
+  return this.output.flush();
+};
+
+THBaseServiceClient.prototype.recv_get = function(input,mtype,rseqid) {
+  var callback = this._reqs[rseqid] || function() {};
+  delete this._reqs[rseqid];
+  if (mtype == Thrift.MessageType.EXCEPTION) {
+    var x = new Thrift.TApplicationException();
+    x.read(input);
+    input.readMessageEnd();
+    return callback(x);
+  }
+  var result = new THBaseService_get_result();
+  result.read(input);
+  input.readMessageEnd();
+
+  if (null !== result.io) {
+    return callback(result.io);
+  }
+  if (null !== result.success) {
+    return callback(null, result.success);
+  }
+  return callback('get failed: unknown result');
+};
+THBaseServiceClient.prototype.getMultiple = function(table, gets, callback) {
+  this.seqid += 1;
+  this._reqs[this.seqid] = callback;
+  this.send_getMultiple(table, gets);
+};
+
+THBaseServiceClient.prototype.send_getMultiple = function(table, gets) {
+  var output = new this.pClass(this.output);
+  output.writeMessageBegin('getMultiple', Thrift.MessageType.CALL, this.seqid);
+  var args = new THBaseService_getMultiple_args();
+  args.table = table;
+  args.gets = gets;
+  args.write(output);
+  output.writeMessageEnd();
+  return this.output.flush();
+};
+
+THBaseServiceClient.prototype.recv_getMultiple = function(input,mtype,rseqid) {
+  var callback = this._reqs[rseqid] || function() {};
+  delete this._reqs[rseqid];
+  if (mtype == Thrift.MessageType.EXCEPTION) {
+    var x = new Thrift.TApplicationException();
+    x.read(input);
+    input.readMessageEnd();
+    return callback(x);
+  }
+  var result = new THBaseService_getMultiple_result();
+  result.read(input);
+  input.readMessageEnd();
+
+  if (null !== result.io) {
+    return callback(result.io);
+  }
+  if (null !== result.success) {
+    return callback(null, result.success);
+  }
+  return callback('getMultiple failed: unknown result');
+};
+THBaseServiceClient.prototype.put = function(table, put, callback) {
+  this.seqid += 1;
+  this._reqs[this.seqid] = callback;
+  this.send_put(table, put);
+};
+
+THBaseServiceClient.prototype.send_put = function(table, put) {
+  var output = new this.pClass(this.output);
+  output.writeMessageBegin('put', Thrift.MessageType.CALL, this.seqid);
+  var args = new THBaseService_put_args();
+  args.table = table;
+  args.put = put;
+  args.write(output);
+  output.writeMessageEnd();
+  return this.output.flush();
+};
+
+THBaseServiceClient.prototype.recv_put = function(input,mtype,rseqid) {
+  var callback = this._reqs[rseqid] || function() {};
+  delete this._reqs[rseqid];
+  if (mtype == Thrift.MessageType.EXCEPTION) {
+    var x = new Thrift.TApplicationException();
+    x.read(input);
+    input.readMessageEnd();
+    return callback(x);
+  }
+  var result = new THBaseService_put_result();
+  result.read(input);
+  input.readMessageEnd();
+
+  if (null !== result.io) {
+    return callback(result.io);
+  }
+  callback(null)
+};
+THBaseServiceClient.prototype.checkAndPut = function(table, row, family, qualifier, value, put, callback) {
+  this.seqid += 1;
+  this._reqs[this.seqid] = callback;
+  this.send_checkAndPut(table, row, family, qualifier, value, put);
+};
+
+THBaseServiceClient.prototype.send_checkAndPut = function(table, row, family, qualifier, value, put) {
+  var output = new this.pClass(this.output);
+  output.writeMessageBegin('checkAndPut', Thrift.MessageType.CALL, this.seqid);
+  var args = new THBaseService_checkAndPut_args();
+  args.table = table;
+  args.row = row;
+  args.family = family;
+  args.qualifier = qualifier;
+  args.value = value;
+  args.put = put;
+  args.write(output);
+  output.writeMessageEnd();
+  return this.output.flush();
+};
+
+THBaseServiceClient.prototype.recv_checkAndPut = function(input,mtype,rseqid) {
+  var callback = this._reqs[rseqid] || function() {};
+  delete this._reqs[rseqid];
+  if (mtype == Thrift.MessageType.EXCEPTION) {
+    var x = new Thrift.TApplicationException();
+    x.read(input);
+    input.readMessageEnd();
+    return callback(x);
+  }
+  var result = new THBaseService_checkAndPut_result();
+  result.read(input);
+  input.readMessageEnd();
+
+  if (null !== result.io) {
+    return callback(result.io);
+  }
+  if (null !== result.success) {
+    return callback(null, result.success);
+  }
+  return callback('checkAndPut failed: unknown result');
+};
+THBaseServiceClient.prototype.putMultiple = function(table, puts, callback) {
+  this.seqid += 1;
+  this._reqs[this.seqid] = callback;
+  this.send_putMultiple(table, puts);
+};
+
+THBaseServiceClient.prototype.send_putMultiple = function(table, puts) {
+  var output = new this.pClass(this.output);
+  output.writeMessageBegin('putMultiple', Thrift.MessageType.CALL, this.seqid);
+  var args = new THBaseService_putMultiple_args();
+  args.table = table;
+  args.puts = puts;
+  args.write(output);
+  output.writeMessageEnd();
+  return this.output.flush();
+};
+
+THBaseServiceClient.prototype.recv_putMultiple = function(input,mtype,rseqid) {
+  var callback = this._reqs[rseqid] || function() {};
+  delete this._reqs[rseqid];
+  if (mtype == Thrift.MessageType.EXCEPTION) {
+    var x = new Thrift.TApplicationException();
+    x.read(input);
+    input.readMessageEnd();
+    return callback(x);
+  }
+  var result = new THBaseService_putMultiple_result();
+  result.read(input);
+  input.readMessageEnd();
+
+  if (null !== result.io) {
+    return callback(result.io);
+  }
+  callback(null)
+};
+THBaseServiceClient.prototype.deleteSingle = function(table, deleteSingle, callback) {
+  this.seqid += 1;
+  this._reqs[this.seqid] = callback;
+  this.send_deleteSingle(table, deleteSingle);
+};
+
+THBaseServiceClient.prototype.send_deleteSingle = function(table, deleteSingle) {
+  var output = new this.pClass(this.output);
+  output.writeMessageBegin('deleteSingle', Thrift.MessageType.CALL, this.seqid);
+  var args = new THBaseService_deleteSingle_args();
+  args.table = table;
+  args.deleteSingle = deleteSingle;
+  args.write(output);
+  output.writeMessageEnd();
+  return this.output.flush();
+};
+
+THBaseServiceClient.prototype.recv_deleteSingle = function(input,mtype,rseqid) {
+  var callback = this._reqs[rseqid] || function() {};
+  delete this._reqs[rseqid];
+  if (mtype == Thrift.MessageType.EXCEPTION) {
+    var x = new Thrift.TApplicationException();
+    x.read(input);
+    input.readMessageEnd();
+    return callback(x);
+  }
+  var result = new THBaseService_deleteSingle_result();
+  result.read(input);
+  input.readMessageEnd();
+
+  if (null !== result.io) {
+    return callback(result.io);
+  }
+  callback(null)
+};
+THBaseServiceClient.prototype.deleteMultiple = function(table, deletes, callback) {
+  this.seqid += 1;
+  this._reqs[this.seqid] = callback;
+  this.send_deleteMultiple(table, deletes);
+};
+
+THBaseServiceClient.prototype.send_deleteMultiple = function(table, deletes) {
+  var output = new this.pClass(this.output);
+  output.writeMessageBegin('deleteMultiple', Thrift.MessageType.CALL, this.seqid);
+  var args = new THBaseService_deleteMultiple_args();
+  args.table = table;
+  args.deletes = deletes;
+  args.write(output);
+  output.writeMessageEnd();
+  return this.output.flush();
+};
+
+THBaseServiceClient.prototype.recv_deleteMultiple = function(input,mtype,rseqid) {
+  var callback = this._reqs[rseqid] || function() {};
+  delete this._reqs[rseqid];
+  if (mtype == Thrift.MessageType.EXCEPTION) {
+    var x = new Thrift.TApplicationException();
+    x.read(input);
+    input.readMessageEnd();
+    return callback(x);
+  }
+  var result = new THBaseService_deleteMultiple_result();
+  result.read(input);
+  input.readMessageEnd();
+
+  if (null !== result.io) {
+    return callback(result.io);
+  }
+  if (null !== result.success) {
+    return callback(null, result.success);
+  }
+  return callback('deleteMultiple failed: unknown result');
+};
+THBaseServiceClient.prototype.checkAndDelete = function(table, row, family, qualifier, value, deleteSingle, callback) {
+  this.seqid += 1;
+  this._reqs[this.seqid] = callback;
+  this.send_checkAndDelete(table, row, family, qualifier, value, deleteSingle);
+};
+
+THBaseServiceClient.prototype.send_checkAndDelete = function(table, row, family, qualifier, value, deleteSingle) {
+  var output = new this.pClass(this.output);
+  output.writeMessageBegin('checkAndDelete', Thrift.MessageType.CALL, this.seqid);
+  var args = new THBaseService_checkAndDelete_args();
+  args.table = table;
+  args.row = row;
+  args.family = family;
+  args.qualifier = qualifier;
+  args.value = value;
+  args.deleteSingle = deleteSingle;
+  args.write(output);
+  output.writeMessageEnd();
+  return this.output.flush();
+};
+
+THBaseServiceClient.prototype.recv_checkAndDelete = function(input,mtype,rseqid) {
+  var callback = this._reqs[rseqid] || function() {};
+  delete this._reqs[rseqid];
+  if (mtype == Thrift.MessageType.EXCEPTION) {
+    var x = new Thrift.TApplicationException();
+    x.read(input);
+    input.readMessageEnd();
+    return callback(x);
+  }
+  var result = new THBaseService_checkAndDelete_result();
+  result.read(input);
+  input.readMessageEnd();
+
+  if (null !== result.io) {
+    return callback(result.io);
+  }
+  if (null !== result.success) {
+    return callback(null, result.success);
+  }
+  return callback('checkAndDelete failed: unknown result');
+};
+THBaseServiceClient.prototype.increment = function(table, increment, callback) {
+  this.seqid += 1;
+  this._reqs[this.seqid] = callback;
+  this.send_increment(table, increment);
+};
+
+THBaseServiceClient.prototype.send_increment = function(table, increment) {
+  var output = new this.pClass(this.output);
+  output.writeMessageBegin('increment', Thrift.MessageType.CALL, this.seqid);
+  var args = new THBaseService_increment_args();
+  args.table = table;
+  args.increment = increment;
+  args.write(output);
+  output.writeMessageEnd();
+  return this.output.flush();
+};
+
+THBaseServiceClient.prototype.recv_increment = function(input,mtype,rseqid) {
+  var callback = this._reqs[rseqid] || function() {};
+  delete this._reqs[rseqid];
+  if (mtype == Thrift.MessageType.EXCEPTION) {
+    var x = new Thrift.TApplicationException();
+    x.read(input);
+    input.readMessageEnd();
+    return callback(x);
+  }
+  var result = new THBaseService_increment_result();
+  result.read(input);
+  input.readMessageEnd();
+
+  if (null !== result.io) {
+    return callback(result.io);
+  }
+  if (null !== result.success) {
+    return callback(null, result.success);
+  }
+  return callback('increment failed: unknown result');
+};
+THBaseServiceClient.prototype.append = function(table, append, callback) {
+  this.seqid += 1;
+  this._reqs[this.seqid] = callback;
+  this.send_append(table, append);
+};
+
+THBaseServiceClient.prototype.send_append = function(table, append) {
+  var output = new this.pClass(this.output);
+  output.writeMessageBegin('append', Thrift.MessageType.CALL, this.seqid);
+  var args = new THBaseService_append_args();
+  args.table = table;
+  args.append = append;
+  args.write(output);
+  output.writeMessageEnd();
+  return this.output.flush();
+};
+
+THBaseServiceClient.prototype.recv_append = function(input,mtype,rseqid) {
+  var callback = this._reqs[rseqid] || function() {};
+  delete this._reqs[rseqid];
+  if (mtype == Thrift.MessageType.EXCEPTION) {
+    var x = new Thrift.TApplicationException();
+    x.read(input);
+    input.readMessageEnd();
+    return callback(x);
+  }
+  var result = new THBaseService_append_result();
+  result.read(input);
+  input.readMessageEnd();
+
+  if (null !== result.io) {
+    return callback(result.io);
+  }
+  if (null !== result.success) {
+    return callback(null, result.success);
+  }
+  return callback('append failed: unknown result');
+};
+THBaseServiceClient.prototype.openScanner = function(table, scan, callback) {
+  this.seqid += 1;
+  this._reqs[this.seqid] = callback;
+  this.send_openScanner(table, scan);
+};
+
+THBaseServiceClient.prototype.send_openScanner = function(table, scan) {
+  var output = new this.pClass(this.output);
+  output.writeMessageBegin('openScanner', Thrift.MessageType.CALL, this.seqid);
+  var args = new THBaseService_openScanner_args();
+  args.table = table;
+  args.scan = scan;
+  args.write(output);
+  output.writeMessageEnd();
+  return this.output.flush();
+};
+
+THBaseServiceClient.prototype.recv_openScanner = function(input,mtype,rseqid) {
+  var callback = this._reqs[rseqid] || function() {};
+  delete this._reqs[rseqid];
+  if (mtype == Thrift.MessageType.EXCEPTION) {
+    var x = new Thrift.TApplicationException();
+    x.read(input);
+    input.readMessageEnd();
+    return callback(x);
+  }
+  var result = new THBaseService_openScanner_result();
+  result.read(input);
+  input.readMessageEnd();
+
+  if (null !== result.io) {
+    return callback(result.io);
+  }
+  if (null !== result.success) {
+    return callback(null, result.success);
+  }
+  return callback('openScanner failed: unknown result');
+};
+THBaseServiceClient.prototype.getScannerRows = function(scannerId, numRows, callback) {
+  this.seqid += 1;
+  this._reqs[this.seqid] = callback;
+  this.send_getScannerRows(scannerId, numRows);
+};
+
+THBaseServiceClient.prototype.send_getScannerRows = function(scannerId, numRows) {
+  var output = new this.pClass(this.output);
+  output.writeMessageBegin('getScannerRows', Thrift.MessageType.CALL, this.seqid);
+  var args = new THBaseService_getScannerRows_args();
+  args.scannerId = scannerId;
+  args.numRows = numRows;
+  args.write(output);
+  output.writeMessageEnd();
+  return this.output.flush();
+};
+
+THBaseServiceClient.prototype.recv_getScannerRows = function(input,mtype,rseqid) {
+  var callback = this._reqs[rseqid] || function() {};
+  delete this._reqs[rseqid];
+  if (mtype == Thrift.MessageType.EXCEPTION) {
+    var x = new Thrift.TApplicationException();
+    x.read(input);
+    input.readMessageEnd();
+    return callback(x);
+  }
+  var result = new THBaseService_getScannerRows_result();
+  result.read(input);
+  input.readMessageEnd();
+
+  if (null !== result.io) {
+    return callback(result.io);
+  }
+  if (null !== result.ia) {
+    return callback(result.ia);
+  }
+  if (null !== result.success) {
+    return callback(null, result.success);
+  }
+  return callback('getScannerRows failed: unknown result');
+};
+THBaseServiceClient.prototype.closeScanner = function(scannerId, callback) {
+  this.seqid += 1;
+  this._reqs[this.seqid] = callback;
+  this.send_closeScanner(scannerId);
+};
+
+THBaseServiceClient.prototype.send_closeScanner = function(scannerId) {
+  var output = new this.pClass(this.output);
+  output.writeMessageBegin('closeScanner', Thrift.MessageType.CALL, this.seqid);
+  var args = new THBaseService_closeScanner_args();
+  args.scannerId = scannerId;
+  args.write(output);
+  output.writeMessageEnd();
+  return this.output.flush();
+};
+
+THBaseServiceClient.prototype.recv_closeScanner = function(input,mtype,rseqid) {
+  var callback = this._reqs[rseqid] || function() {};
+  delete this._reqs[rseqid];
+  if (mtype == Thrift.MessageType.EXCEPTION) {
+    var x = new Thrift.TApplicationException();
+    x.read(input);
+    input.readMessageEnd();
+    return callback(x);
+  }
+  var result = new THBaseService_closeScanner_result();
+  result.read(input);
+  input.readMessageEnd();
+
+  if (null !== result.io) {
+    return callback(result.io);
+  }
+  if (null !== result.ia) {
+    return callback(result.ia);
+  }
+  callback(null)
+};
+THBaseServiceClient.prototype.mutateRow = function(table, rowMutations, callback) {
+  this.seqid += 1;
+  this._reqs[this.seqid] = callback;
+  this.send_mutateRow(table, rowMutations);
+};
+
+THBaseServiceClient.prototype.send_mutateRow = function(table, rowMutations) {
+  var output = new this.pClass(this.output);
+  output.writeMessageBegin('mutateRow', Thrift.MessageType.CALL, this.seqid);
+  var args = new THBaseService_mutateRow_args();
+  args.table = table;
+  args.rowMutations = rowMutations;
+  args.write(output);
+  output.writeMessageEnd();
+  return this.output.flush();
+};
+
+THBaseServiceClient.prototype.recv_mutateRow = function(input,mtype,rseqid) {
+  var callback = this._reqs[rseqid] || function() {};
+  delete this._reqs[rseqid];
+  if (mtype == Thrift.MessageType.EXCEPTION) {
+    var x = new Thrift.TApplicationException();
+    x.read(input);
+    input.readMessageEnd();
+    return callback(x);
+  }
+  var result = new THBaseService_mutateRow_result();
+  result.read(input);
+  input.readMessageEnd();
+
+  if (null !== result.io) {
+    return callback(result.io);
+  }
+  callback(null)
+};
+THBaseServiceClient.prototype.getScannerResults = function(table, scan, numRows, callback) {
+  this.seqid += 1;
+  this._reqs[this.seqid] = callback;
+  this.send_getScannerResults(table, scan, numRows);
+};
+
+THBaseServiceClient.prototype.send_getScannerResults = function(table, scan, numRows) {
+  var output = new this.pClass(this.output);
+  output.writeMessageBegin('getScannerResults', Thrift.MessageType.CALL, this.seqid);
+  var args = new THBaseService_getScannerResults_args();
+  args.table = table;
+  args.scan = scan;
+  args.numRows = numRows;
+  args.write(output);
+  output.writeMessageEnd();
+  return this.output.flush();
+};
+
+THBaseServiceClient.prototype.recv_getScannerResults = function(input,mtype,rseqid) {
+  var callback = this._reqs[rseqid] || function() {};
+  delete this._reqs[rseqid];
+  if (mtype == Thrift.MessageType.EXCEPTION) {
+    var x = new Thrift.TApplicationException();
+    x.read(input);
+    input.readMessageEnd();
+    return callback(x);
+  }
+  var result = new THBaseService_getScannerResults_result();
+  result.read(input);
+  input.readMessageEnd();
+
+  if (null !== result.io) {
+    return callback(result.io);
+  }
+  if (null !== result.success) {
+    return callback(null, result.success);
+  }
+  return callback('getScannerResults failed: unknown result');
+};
+THBaseServiceProcessor = exports.Processor = function(handler) {
+  this._handler = handler
+}
+THBaseServiceProcessor.prototype.process = function(input, output) {
+  var r = input.readMessageBegin();
+  if (this['process_' + r.fname]) {
+    return this['process_' + r.fname].call(this, r.rseqid, input, output);
+  } else {
+    input.skip(Thrift.Type.STRUCT);
+    input.readMessageEnd();
+    var x = new Thrift.TApplicationException(Thrift.TApplicationExceptionType.UNKNOWN_METHOD, 'Unknown function ' + r.fname);
+    output.writeMessageBegin(r.fname, Thrift.MessageType.Exception, r.rseqid);
+    x.write(output);
+    output.writeMessageEnd();
+    output.flush();
+  }
+}
+
+THBaseServiceProcessor.prototype.process_exists = function(seqid, input, output) {
+  var args = new THBaseService_exists_args();
+  args.read(input);
+  input.readMessageEnd();
+  this._handler.exists(args.table, args.get, function (err, result) {
+    var result = new THBaseService_exists_result((err != null ? err : {success: result}));
+    output.writeMessageBegin("exists", Thrift.MessageType.REPLY, seqid);
+    result.write(output);
+    output.writeMessageEnd();
+    output.flush();
+  })
+}
+
+THBaseServiceProcessor.prototype.process_get = function(seqid, input, output) {
+  var args = new THBaseService_get_args();
+  args.read(input);
+  input.readMessageEnd();
+  this._handler.get(args.table, args.get, function (err, result) {
+    var result = new THBaseService_get_result((err != null ? err : {success: result}));
+    output.writeMessageBegin("get", Thrift.MessageType.REPLY, seqid);
+    result.write(output);
+    output.writeMessageEnd();
+    output.flush();
+  })
+}
+
+THBaseServiceProcessor.prototype.process_getMultiple = function(seqid, input, output) {
+  var args = new THBaseService_getMultiple_args();
+  args.read(input);
+  input.readMessageEnd();
+  this._handler.getMultiple(args.table, args.gets, function (err, result) {
+    var result = new THBaseService_getMultiple_result((err != null ? err : {success: result}));
+    output.writeMessageBegin("getMultiple", Thrift.MessageType.REPLY, seqid);
+    result.write(output);
+    output.writeMessageEnd();
+    output.flush();
+  })
+}
+
+THBaseServiceProcessor.prototype.process_put = function(seqid, input, output) {
+  var args = new THBaseService_put_args();
+  args.read(input);
+  input.readMessageEnd();
+  this._handler.put(args.table, args.put, function (err, result) {
+    var result = new THBaseService_put_result((err != null ? err : {success: result}));
+    output.writeMessageBegin("put", Thrift.MessageType.REPLY, seqid);
+    result.write(output);
+    output.writeMessageEnd();
+    output.flush();
+  })
+}
+
+THBaseServiceProcessor.prototype.process_checkAndPut = function(seqid, input, output) {
+  var args = new THBaseService_checkAndPut_args();
+  args.read(input);
+  input.readMessageEnd();
+  this._handler.checkAndPut(args.table, args.row, args.family, args.qualifier, args.value, args.put, function (err, result) {
+    var result = new THBaseService_checkAndPut_result((err != null ? err : {success: result}));
+    output.writeMessageBegin("checkAndPut", Thrift.MessageType.REPLY, seqid);
+    result.write(output);
+    output.writeMessageEnd();
+    output.flush();
+  })
+}
+
+THBaseServiceProcessor.prototype.process_putMultiple = function(seqid, input, output) {
+  var args = new THBaseService_putMultiple_args();
+  args.read(input);
+  input.readMessageEnd();
+  this._handler.putMultiple(args.table, args.puts, function (err, result) {
+    var result = new THBaseService_putMultiple_result((err != null ? err : {success: result}));
+    output.writeMessageBegin("putMultiple", Thrift.MessageType.REPLY, seqid);
+    result.write(output);
+    output.writeMessageEnd();
+    output.flush();
+  })
+}
+
+THBaseServiceProcessor.prototype.process_deleteSingle = function(seqid, input, output) {
+  var args = new THBaseService_deleteSingle_args();
+  args.read(input);
+  input.readMessageEnd();
+  this._handler.deleteSingle(args.table, args.deleteSingle, function (err, result) {
+    var result = new THBaseService_deleteSingle_result((err != null ? err : {success: result}));
+    output.writeMessageBegin("deleteSingle", Thrift.MessageType.REPLY, seqid);
+    result.write(output);
+    output.writeMessageEnd();
+    output.flush();
+  })
+}
+
+THBaseServiceProcessor.prototype.process_deleteMultiple = function(seqid, input, output) {
+  var args = new THBaseService_deleteMultiple_args();
+  args.read(input);
+  input.readMessageEnd();
+  this._handler.deleteMultiple(args.table, args.deletes, function (err, result) {
+    var result = new THBaseService_deleteMultiple_result((err != null ? err : {success: result}));
+    output.writeMessageBegin("deleteMultiple", Thrift.MessageType.REPLY, seqid);
+    result.write(output);
+    output.writeMessageEnd();
+    output.flush();
+  })
+}
+
+THBaseServiceProcessor.prototype.process_checkAndDelete = function(seqid, input, output) {
+  var args = new THBaseService_checkAndDelete_args();
+  args.read(input);
+  input.readMessageEnd();
+  this._handler.checkAndDelete(args.table, args.row, args.family, args.qualifier, args.value, args.deleteSingle, function (err, result) {
+    var result = new THBaseService_checkAndDelete_result((err != null ? err : {success: result}));
+    output.writeMessageBegin("checkAndDelete", Thrift.MessageType.REPLY, seqid);
+    result.write(output);
+    output.writeMessageEnd();
+    output.flush();
+  })
+}
+
+THBaseServiceProcessor.prototype.process_increment = function(seqid, input, output) {
+  var args = new THBaseService_increment_args();
+  args.read(input);
+  input.readMessageEnd();
+  this._handler.increment(args.table, args.increment, function (err, result) {
+    var result = new THBaseService_increment_result((err != null ? err : {success: result}));
+    output.writeMessageBegin("increment", Thrift.MessageType.REPLY, seqid);
+    result.write(output);
+    output.writeMessageEnd();
+    output.flush();
+  })
+}
+
+THBaseServiceProcessor.prototype.process_append = function(seqid, input, output) {
+  var args = new THBaseService_append_args();
+  args.read(input);
+  input.readMessageEnd();
+  this._handler.append(args.table, args.append, function (err, result) {
+    var result = new THBaseService_append_result((err != null ? err : {success: result}));
+    output.writeMessageBegin("append", Thrift.MessageType.REPLY, seqid);
+    result.write(output);
+    output.writeMessageEnd();
+    output.flush();
+  })
+}
+
+THBaseServiceProcessor.prototype.process_openScanner = function(seqid, input, output) {
+  var args = new THBaseService_openScanner_args();
+  args.read(input);
+  input.readMessageEnd();
+  this._handler.openScanner(args.table, args.scan, function (err, result) {
+    var result = new THBaseService_openScanner_result((err != null ? err : {success: result}));
+    output.writeMessageBegin("openScanner", Thrift.MessageType.REPLY, seqid);
+    result.write(output);
+    output.writeMessageEnd();
+    output.flush();
+  })
+}
+
+THBaseServiceProcessor.prototype.process_getScannerRows = function(seqid, input, output) {
+  var args = new THBaseService_getScannerRows_args();
+  args.read(input);
+  input.readMessageEnd();
+  this._handler.getScannerRows(args.scannerId, args.numRows, function (err, result) {
+    var result = new THBaseService_getScannerRows_result((err != null ? err : {success: result}));
+    output.writeMessageBegin("getScannerRows", Thrift.MessageType.REPLY, seqid);
+    result.write(output);
+    output.writeMessageEnd();
+    output.flush();
+  })
+}
+
+THBaseServiceProcessor.prototype.process_closeScanner = function(seqid, input, output) {
+  var args = new THBaseService_closeScanner_args();
+  args.read(input);
+  input.readMessageEnd();
+  this._handler.closeScanner(args.scannerId, function (err, result) {
+    var result = new THBaseService_closeScanner_result((err != null ? err : {success: result}));
+    output.writeMessageBegin("closeScanner", Thrift.MessageType.REPLY, seqid);
+    result.write(output);
+    output.writeMessageEnd();
+    output.flush();
+  })
+}
+
+THBaseServiceProcessor.prototype.process_mutateRow = function(seqid, input, output) {
+  var args = new THBaseService_mutateRow_args();
+  args.read(input);
+  input.readMessageEnd();
+  this._handler.mutateRow(args.table, args.rowMutations, function (err, result) {
+    var result = new THBaseService_mutateRow_result((err != null ? err : {success: result}));
+    output.writeMessageBegin("mutateRow", Thrift.MessageType.REPLY, seqid);
+    result.write(output);
+    output.writeMessageEnd();
+    output.flush();
+  })
+}
+
+THBaseServiceProcessor.prototype.process_getScannerResults = function(seqid, input, output) {
+  var args = new THBaseService_getScannerResults_args();
+  args.read(input);
+  input.readMessageEnd();
+  this._handler.getScannerResults(args.table, args.scan, args.numRows, function (err, result) {
+    var result = new THBaseService_getScannerResults_result((err != null ? err : {success: result}));
+    output.writeMessageBegin("getScannerResults", Thrift.MessageType.REPLY, seqid);
+    result.write(output);
+    output.writeMessageEnd();
+    output.flush();
+  })
+}
+
+
+},{"./hbase_types":41,"thrift":181}],41:[function(require,module,exports){
+//
+// Autogenerated by Thrift Compiler (0.9.1)
+//
+// DO NOT EDIT UNLESS YOU ARE SURE THAT YOU KNOW WHAT YOU ARE DOING
+//
+var Thrift = require('thrift').Thrift;
+
+var ttypes = module.exports = {};
+ttypes.TDeleteType = {
+'DELETE_COLUMN' : 0,
+'DELETE_COLUMNS' : 1
+};
+ttypes.TDurability = {
+'SKIP_WAL' : 1,
+'ASYNC_WAL' : 2,
+'SYNC_WAL' : 3,
+'FSYNC_WAL' : 4
+};
+TTimeRange = module.exports.TTimeRange = function(args) {
+  this.minStamp = null;
+  this.maxStamp = null;
+  if (args) {
+    if (args.minStamp !== undefined) {
+      this.minStamp = args.minStamp;
+    }
+    if (args.maxStamp !== undefined) {
+      this.maxStamp = args.maxStamp;
+    }
+  }
+};
+TTimeRange.prototype = {};
+TTimeRange.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+      if (ftype == Thrift.Type.I64) {
+        this.minStamp = input.readI64();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 2:
+      if (ftype == Thrift.Type.I64) {
+        this.maxStamp = input.readI64();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+TTimeRange.prototype.write = function(output) {
+  output.writeStructBegin('TTimeRange');
+  if (this.minStamp !== null && this.minStamp !== undefined) {
+    output.writeFieldBegin('minStamp', Thrift.Type.I64, 1);
+    output.writeI64(this.minStamp);
+    output.writeFieldEnd();
+  }
+  if (this.maxStamp !== null && this.maxStamp !== undefined) {
+    output.writeFieldBegin('maxStamp', Thrift.Type.I64, 2);
+    output.writeI64(this.maxStamp);
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+TColumn = module.exports.TColumn = function(args) {
+  this.family = null;
+  this.qualifier = null;
+  this.timestamp = null;
+  if (args) {
+    if (args.family !== undefined) {
+      this.family = args.family;
+    }
+    if (args.qualifier !== undefined) {
+      this.qualifier = args.qualifier;
+    }
+    if (args.timestamp !== undefined) {
+      this.timestamp = args.timestamp;
+    }
+  }
+};
+TColumn.prototype = {};
+TColumn.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+      if (ftype == Thrift.Type.STRING) {
+        this.family = input.readString();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 2:
+      if (ftype == Thrift.Type.STRING) {
+        this.qualifier = input.readString();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 3:
+      if (ftype == Thrift.Type.I64) {
+        this.timestamp = input.readI64();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+TColumn.prototype.write = function(output) {
+  output.writeStructBegin('TColumn');
+  if (this.family !== null && this.family !== undefined) {
+    output.writeFieldBegin('family', Thrift.Type.STRING, 1);
+    output.writeString(this.family);
+    output.writeFieldEnd();
+  }
+  if (this.qualifier !== null && this.qualifier !== undefined) {
+    output.writeFieldBegin('qualifier', Thrift.Type.STRING, 2);
+    output.writeString(this.qualifier);
+    output.writeFieldEnd();
+  }
+  if (this.timestamp !== null && this.timestamp !== undefined) {
+    output.writeFieldBegin('timestamp', Thrift.Type.I64, 3);
+    output.writeI64(this.timestamp);
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+TColumnValue = module.exports.TColumnValue = function(args) {
+  this.family = null;
+  this.qualifier = null;
+  this.value = null;
+  this.timestamp = null;
+  this.tags = null;
+  if (args) {
+    if (args.family !== undefined) {
+      this.family = args.family;
+    }
+    if (args.qualifier !== undefined) {
+      this.qualifier = args.qualifier;
+    }
+    if (args.value !== undefined) {
+      this.value = args.value;
+    }
+    if (args.timestamp !== undefined) {
+      this.timestamp = args.timestamp;
+    }
+    if (args.tags !== undefined) {
+      this.tags = args.tags;
+    }
+  }
+};
+TColumnValue.prototype = {};
+TColumnValue.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+      if (ftype == Thrift.Type.STRING) {
+        this.family = input.readString();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 2:
+      if (ftype == Thrift.Type.STRING) {
+        this.qualifier = input.readString();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 3:
+      if (ftype == Thrift.Type.STRING) {
+        this.value = input.readString();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 4:
+      if (ftype == Thrift.Type.I64) {
+        this.timestamp = input.readI64();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 5:
+      if (ftype == Thrift.Type.STRING) {
+        this.tags = input.readString();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+TColumnValue.prototype.write = function(output) {
+  output.writeStructBegin('TColumnValue');
+  if (this.family !== null && this.family !== undefined) {
+    output.writeFieldBegin('family', Thrift.Type.STRING, 1);
+    output.writeString(this.family);
+    output.writeFieldEnd();
+  }
+  if (this.qualifier !== null && this.qualifier !== undefined) {
+    output.writeFieldBegin('qualifier', Thrift.Type.STRING, 2);
+    output.writeString(this.qualifier);
+    output.writeFieldEnd();
+  }
+  if (this.value !== null && this.value !== undefined) {
+    output.writeFieldBegin('value', Thrift.Type.STRING, 3);
+    output.writeString(this.value);
+    output.writeFieldEnd();
+  }
+  if (this.timestamp !== null && this.timestamp !== undefined) {
+    output.writeFieldBegin('timestamp', Thrift.Type.I64, 4);
+    output.writeI64(this.timestamp);
+    output.writeFieldEnd();
+  }
+  if (this.tags !== null && this.tags !== undefined) {
+    output.writeFieldBegin('tags', Thrift.Type.STRING, 5);
+    output.writeString(this.tags);
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+TColumnIncrement = module.exports.TColumnIncrement = function(args) {
+  this.family = null;
+  this.qualifier = null;
+  this.amount = 1;
+  if (args) {
+    if (args.family !== undefined) {
+      this.family = args.family;
+    }
+    if (args.qualifier !== undefined) {
+      this.qualifier = args.qualifier;
+    }
+    if (args.amount !== undefined) {
+      this.amount = args.amount;
+    }
+  }
+};
+TColumnIncrement.prototype = {};
+TColumnIncrement.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+      if (ftype == Thrift.Type.STRING) {
+        this.family = input.readString();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 2:
+      if (ftype == Thrift.Type.STRING) {
+        this.qualifier = input.readString();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 3:
+      if (ftype == Thrift.Type.I64) {
+        this.amount = input.readI64();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+TColumnIncrement.prototype.write = function(output) {
+  output.writeStructBegin('TColumnIncrement');
+  if (this.family !== null && this.family !== undefined) {
+    output.writeFieldBegin('family', Thrift.Type.STRING, 1);
+    output.writeString(this.family);
+    output.writeFieldEnd();
+  }
+  if (this.qualifier !== null && this.qualifier !== undefined) {
+    output.writeFieldBegin('qualifier', Thrift.Type.STRING, 2);
+    output.writeString(this.qualifier);
+    output.writeFieldEnd();
+  }
+  if (this.amount !== null && this.amount !== undefined) {
+    output.writeFieldBegin('amount', Thrift.Type.I64, 3);
+    output.writeI64(this.amount);
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+TResult = module.exports.TResult = function(args) {
+  this.row = null;
+  this.columnValues = null;
+  if (args) {
+    if (args.row !== undefined) {
+      this.row = args.row;
+    }
+    if (args.columnValues !== undefined) {
+      this.columnValues = args.columnValues;
+    }
+  }
+};
+TResult.prototype = {};
+TResult.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+      if (ftype == Thrift.Type.STRING) {
+        this.row = input.readString();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 2:
+      if (ftype == Thrift.Type.LIST) {
+        var _size0 = 0;
+        var _rtmp34;
+        this.columnValues = [];
+        var _etype3 = 0;
+        _rtmp34 = input.readListBegin();
+        _etype3 = _rtmp34.etype;
+        _size0 = _rtmp34.size;
+        for (var _i5 = 0; _i5 < _size0; ++_i5)
+        {
+          var elem6 = null;
+          elem6 = new ttypes.TColumnValue();
+          elem6.read(input);
+          this.columnValues.push(elem6);
+        }
+        input.readListEnd();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+TResult.prototype.write = function(output) {
+  output.writeStructBegin('TResult');
+  if (this.row !== null && this.row !== undefined) {
+    output.writeFieldBegin('row', Thrift.Type.STRING, 1);
+    output.writeString(this.row);
+    output.writeFieldEnd();
+  }
+  if (this.columnValues !== null && this.columnValues !== undefined) {
+    output.writeFieldBegin('columnValues', Thrift.Type.LIST, 2);
+    output.writeListBegin(Thrift.Type.STRUCT, this.columnValues.length);
+    for (var iter7 in this.columnValues)
+    {
+      if (this.columnValues.hasOwnProperty(iter7))
+      {
+        iter7 = this.columnValues[iter7];
+        iter7.write(output);
+      }
+    }
+    output.writeListEnd();
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+TAuthorization = module.exports.TAuthorization = function(args) {
+  this.labels = null;
+  if (args) {
+    if (args.labels !== undefined) {
+      this.labels = args.labels;
+    }
+  }
+};
+TAuthorization.prototype = {};
+TAuthorization.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+      if (ftype == Thrift.Type.LIST) {
+        var _size8 = 0;
+        var _rtmp312;
+        this.labels = [];
+        var _etype11 = 0;
+        _rtmp312 = input.readListBegin();
+        _etype11 = _rtmp312.etype;
+        _size8 = _rtmp312.size;
+        for (var _i13 = 0; _i13 < _size8; ++_i13)
+        {
+          var elem14 = null;
+          elem14 = input.readString();
+          this.labels.push(elem14);
+        }
+        input.readListEnd();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 0:
+        input.skip(ftype);
+        break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+TAuthorization.prototype.write = function(output) {
+  output.writeStructBegin('TAuthorization');
+  if (this.labels !== null && this.labels !== undefined) {
+    output.writeFieldBegin('labels', Thrift.Type.LIST, 1);
+    output.writeListBegin(Thrift.Type.STRING, this.labels.length);
+    for (var iter15 in this.labels)
+    {
+      if (this.labels.hasOwnProperty(iter15))
+      {
+        iter15 = this.labels[iter15];
+        output.writeString(iter15);
+      }
+    }
+    output.writeListEnd();
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+TCellVisibility = module.exports.TCellVisibility = function(args) {
+  this.expression = null;
+  if (args) {
+    if (args.expression !== undefined) {
+      this.expression = args.expression;
+    }
+  }
+};
+TCellVisibility.prototype = {};
+TCellVisibility.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+      if (ftype == Thrift.Type.STRING) {
+        this.expression = input.readString();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 0:
+        input.skip(ftype);
+        break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+TCellVisibility.prototype.write = function(output) {
+  output.writeStructBegin('TCellVisibility');
+  if (this.expression !== null && this.expression !== undefined) {
+    output.writeFieldBegin('expression', Thrift.Type.STRING, 1);
+    output.writeString(this.expression);
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+TGet = module.exports.TGet = function(args) {
+  this.row = null;
+  this.columns = null;
+  this.timestamp = null;
+  this.timeRange = null;
+  this.maxVersions = null;
+  this.filterString = null;
+  this.attributes = null;
+  this.authorizations = null;
+  if (args) {
+    if (args.row !== undefined) {
+      this.row = args.row;
+    }
+    if (args.columns !== undefined) {
+      this.columns = args.columns;
+    }
+    if (args.timestamp !== undefined) {
+      this.timestamp = args.timestamp;
+    }
+    if (args.timeRange !== undefined) {
+      this.timeRange = args.timeRange;
+    }
+    if (args.maxVersions !== undefined) {
+      this.maxVersions = args.maxVersions;
+    }
+    if (args.filterString !== undefined) {
+      this.filterString = args.filterString;
+    }
+    if (args.attributes !== undefined) {
+      this.attributes = args.attributes;
+    }
+    if (args.authorizations !== undefined) {
+      this.authorizations = args.authorizations;
+    }
+  }
+};
+TGet.prototype = {};
+TGet.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+      if (ftype == Thrift.Type.STRING) {
+        this.row = input.readString();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 2:
+      if (ftype == Thrift.Type.LIST) {
+        var _size16 = 0;
+        var _rtmp320;
+        this.columns = [];
+        var _etype19 = 0;
+        _rtmp320 = input.readListBegin();
+        _etype19 = _rtmp320.etype;
+        _size16 = _rtmp320.size;
+        for (var _i21 = 0; _i21 < _size16; ++_i21)
+        {
+          var elem22 = null;
+          elem22 = new ttypes.TColumn();
+          elem22.read(input);
+          this.columns.push(elem22);
+        }
+        input.readListEnd();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 3:
+      if (ftype == Thrift.Type.I64) {
+        this.timestamp = input.readI64();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 4:
+      if (ftype == Thrift.Type.STRUCT) {
+        this.timeRange = new ttypes.TTimeRange();
+        this.timeRange.read(input);
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 5:
+      if (ftype == Thrift.Type.I32) {
+        this.maxVersions = input.readI32();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 6:
+      if (ftype == Thrift.Type.STRING) {
+        this.filterString = input.readString();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 7:
+      if (ftype == Thrift.Type.MAP) {
+        var _size23 = 0;
+        var _rtmp327;
+        this.attributes = {};
+        var _ktype24 = 0;
+        var _vtype25 = 0;
+        _rtmp327 = input.readMapBegin();
+        _ktype24 = _rtmp327.ktype;
+        _vtype25 = _rtmp327.vtype;
+        _size23 = _rtmp327.size;
+        for (var _i28 = 0; _i28 < _size23; ++_i28)
+        {
+          var key29 = null;
+          var val30 = null;
+          key29 = input.readString();
+          val30 = input.readString();
+          this.attributes[key29] = val30;
+        }
+        input.readMapEnd();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 8:
+      if (ftype == Thrift.Type.STRUCT) {
+        this.authorizations = new ttypes.TAuthorization();
+        this.authorizations.read(input);
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+TGet.prototype.write = function(output) {
+  output.writeStructBegin('TGet');
+  if (this.row !== null && this.row !== undefined) {
+    output.writeFieldBegin('row', Thrift.Type.STRING, 1);
+    output.writeString(this.row);
+    output.writeFieldEnd();
+  }
+  if (this.columns !== null && this.columns !== undefined) {
+    output.writeFieldBegin('columns', Thrift.Type.LIST, 2);
+    output.writeListBegin(Thrift.Type.STRUCT, this.columns.length);
+    for (var iter31 in this.columns)
+    {
+      if (this.columns.hasOwnProperty(iter31))
+      {
+        iter31 = this.columns[iter31];
+        iter31.write(output);
+      }
+    }
+    output.writeListEnd();
+    output.writeFieldEnd();
+  }
+  if (this.timestamp !== null && this.timestamp !== undefined) {
+    output.writeFieldBegin('timestamp', Thrift.Type.I64, 3);
+    output.writeI64(this.timestamp);
+    output.writeFieldEnd();
+  }
+  if (this.timeRange !== null && this.timeRange !== undefined) {
+    output.writeFieldBegin('timeRange', Thrift.Type.STRUCT, 4);
+    this.timeRange.write(output);
+    output.writeFieldEnd();
+  }
+  if (this.maxVersions !== null && this.maxVersions !== undefined) {
+    output.writeFieldBegin('maxVersions', Thrift.Type.I32, 5);
+    output.writeI32(this.maxVersions);
+    output.writeFieldEnd();
+  }
+  if (this.filterString !== null && this.filterString !== undefined) {
+    output.writeFieldBegin('filterString', Thrift.Type.STRING, 6);
+    output.writeString(this.filterString);
+    output.writeFieldEnd();
+  }
+  if (this.attributes !== null && this.attributes !== undefined) {
+    output.writeFieldBegin('attributes', Thrift.Type.MAP, 7);
+    output.writeMapBegin(Thrift.Type.STRING, Thrift.Type.STRING, Thrift.objectLength(this.attributes));
+    for (var kiter32 in this.attributes)
+    {
+      if (this.attributes.hasOwnProperty(kiter32))
+      {
+        var viter33 = this.attributes[kiter32];
+        output.writeString(kiter32);
+        output.writeString(viter33);
+      }
+    }
+    output.writeMapEnd();
+    output.writeFieldEnd();
+  }
+  if (this.authorizations !== null && this.authorizations !== undefined) {
+    output.writeFieldBegin('authorizations', Thrift.Type.STRUCT, 8);
+    this.authorizations.write(output);
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+TPut = module.exports.TPut = function(args) {
+  this.row = null;
+  this.columnValues = null;
+  this.timestamp = null;
+  this.attributes = null;
+  this.durability = null;
+  this.cellVisibility = null;
+  if (args) {
+    if (args.row !== undefined) {
+      this.row = args.row;
+    }
+    if (args.columnValues !== undefined) {
+      this.columnValues = args.columnValues;
+    }
+    if (args.timestamp !== undefined) {
+      this.timestamp = args.timestamp;
+    }
+    if (args.attributes !== undefined) {
+      this.attributes = args.attributes;
+    }
+    if (args.durability !== undefined) {
+      this.durability = args.durability;
+    }
+    if (args.cellVisibility !== undefined) {
+      this.cellVisibility = args.cellVisibility;
+    }
+  }
+};
+TPut.prototype = {};
+TPut.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+      if (ftype == Thrift.Type.STRING) {
+        this.row = input.readString();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 2:
+      if (ftype == Thrift.Type.LIST) {
+        var _size34 = 0;
+        var _rtmp338;
+        this.columnValues = [];
+        var _etype37 = 0;
+        _rtmp338 = input.readListBegin();
+        _etype37 = _rtmp338.etype;
+        _size34 = _rtmp338.size;
+        for (var _i39 = 0; _i39 < _size34; ++_i39)
+        {
+          var elem40 = null;
+          elem40 = new ttypes.TColumnValue();
+          elem40.read(input);
+          this.columnValues.push(elem40);
+        }
+        input.readListEnd();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 3:
+      if (ftype == Thrift.Type.I64) {
+        this.timestamp = input.readI64();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 5:
+      if (ftype == Thrift.Type.MAP) {
+        var _size41 = 0;
+        var _rtmp345;
+        this.attributes = {};
+        var _ktype42 = 0;
+        var _vtype43 = 0;
+        _rtmp345 = input.readMapBegin();
+        _ktype42 = _rtmp345.ktype;
+        _vtype43 = _rtmp345.vtype;
+        _size41 = _rtmp345.size;
+        for (var _i46 = 0; _i46 < _size41; ++_i46)
+        {
+          var key47 = null;
+          var val48 = null;
+          key47 = input.readString();
+          val48 = input.readString();
+          this.attributes[key47] = val48;
+        }
+        input.readMapEnd();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 6:
+      if (ftype == Thrift.Type.I32) {
+        this.durability = input.readI32();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 7:
+      if (ftype == Thrift.Type.STRUCT) {
+        this.cellVisibility = new ttypes.TCellVisibility();
+        this.cellVisibility.read(input);
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+TPut.prototype.write = function(output) {
+  output.writeStructBegin('TPut');
+  if (this.row !== null && this.row !== undefined) {
+    output.writeFieldBegin('row', Thrift.Type.STRING, 1);
+    output.writeString(this.row);
+    output.writeFieldEnd();
+  }
+  if (this.columnValues !== null && this.columnValues !== undefined) {
+    output.writeFieldBegin('columnValues', Thrift.Type.LIST, 2);
+    output.writeListBegin(Thrift.Type.STRUCT, this.columnValues.length);
+    for (var iter49 in this.columnValues)
+    {
+      if (this.columnValues.hasOwnProperty(iter49))
+      {
+        iter49 = this.columnValues[iter49];
+        iter49.write(output);
+      }
+    }
+    output.writeListEnd();
+    output.writeFieldEnd();
+  }
+  if (this.timestamp !== null && this.timestamp !== undefined) {
+    output.writeFieldBegin('timestamp', Thrift.Type.I64, 3);
+    output.writeI64(this.timestamp);
+    output.writeFieldEnd();
+  }
+  if (this.attributes !== null && this.attributes !== undefined) {
+    output.writeFieldBegin('attributes', Thrift.Type.MAP, 5);
+    output.writeMapBegin(Thrift.Type.STRING, Thrift.Type.STRING, Thrift.objectLength(this.attributes));
+    for (var kiter50 in this.attributes)
+    {
+      if (this.attributes.hasOwnProperty(kiter50))
+      {
+        var viter51 = this.attributes[kiter50];
+        output.writeString(kiter50);
+        output.writeString(viter51);
+      }
+    }
+    output.writeMapEnd();
+    output.writeFieldEnd();
+  }
+  if (this.durability !== null && this.durability !== undefined) {
+    output.writeFieldBegin('durability', Thrift.Type.I32, 6);
+    output.writeI32(this.durability);
+    output.writeFieldEnd();
+  }
+  if (this.cellVisibility !== null && this.cellVisibility !== undefined) {
+    output.writeFieldBegin('cellVisibility', Thrift.Type.STRUCT, 7);
+    this.cellVisibility.write(output);
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+TDelete = module.exports.TDelete = function(args) {
+  this.row = null;
+  this.columns = null;
+  this.timestamp = null;
+  this.deleteType = 1;
+  this.attributes = null;
+  this.durability = null;
+  if (args) {
+    if (args.row !== undefined) {
+      this.row = args.row;
+    }
+    if (args.columns !== undefined) {
+      this.columns = args.columns;
+    }
+    if (args.timestamp !== undefined) {
+      this.timestamp = args.timestamp;
+    }
+    if (args.deleteType !== undefined) {
+      this.deleteType = args.deleteType;
+    }
+    if (args.attributes !== undefined) {
+      this.attributes = args.attributes;
+    }
+    if (args.durability !== undefined) {
+      this.durability = args.durability;
+    }
+  }
+};
+TDelete.prototype = {};
+TDelete.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+      if (ftype == Thrift.Type.STRING) {
+        this.row = input.readString();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 2:
+      if (ftype == Thrift.Type.LIST) {
+        var _size52 = 0;
+        var _rtmp356;
+        this.columns = [];
+        var _etype55 = 0;
+        _rtmp356 = input.readListBegin();
+        _etype55 = _rtmp356.etype;
+        _size52 = _rtmp356.size;
+        for (var _i57 = 0; _i57 < _size52; ++_i57)
+        {
+          var elem58 = null;
+          elem58 = new ttypes.TColumn();
+          elem58.read(input);
+          this.columns.push(elem58);
+        }
+        input.readListEnd();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 3:
+      if (ftype == Thrift.Type.I64) {
+        this.timestamp = input.readI64();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 4:
+      if (ftype == Thrift.Type.I32) {
+        this.deleteType = input.readI32();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 6:
+      if (ftype == Thrift.Type.MAP) {
+        var _size59 = 0;
+        var _rtmp363;
+        this.attributes = {};
+        var _ktype60 = 0;
+        var _vtype61 = 0;
+        _rtmp363 = input.readMapBegin();
+        _ktype60 = _rtmp363.ktype;
+        _vtype61 = _rtmp363.vtype;
+        _size59 = _rtmp363.size;
+        for (var _i64 = 0; _i64 < _size59; ++_i64)
+        {
+          var key65 = null;
+          var val66 = null;
+          key65 = input.readString();
+          val66 = input.readString();
+          this.attributes[key65] = val66;
+        }
+        input.readMapEnd();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 7:
+      if (ftype == Thrift.Type.I32) {
+        this.durability = input.readI32();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+TDelete.prototype.write = function(output) {
+  output.writeStructBegin('TDelete');
+  if (this.row !== null && this.row !== undefined) {
+    output.writeFieldBegin('row', Thrift.Type.STRING, 1);
+    output.writeString(this.row);
+    output.writeFieldEnd();
+  }
+  if (this.columns !== null && this.columns !== undefined) {
+    output.writeFieldBegin('columns', Thrift.Type.LIST, 2);
+    output.writeListBegin(Thrift.Type.STRUCT, this.columns.length);
+    for (var iter67 in this.columns)
+    {
+      if (this.columns.hasOwnProperty(iter67))
+      {
+        iter67 = this.columns[iter67];
+        iter67.write(output);
+      }
+    }
+    output.writeListEnd();
+    output.writeFieldEnd();
+  }
+  if (this.timestamp !== null && this.timestamp !== undefined) {
+    output.writeFieldBegin('timestamp', Thrift.Type.I64, 3);
+    output.writeI64(this.timestamp);
+    output.writeFieldEnd();
+  }
+  if (this.deleteType !== null && this.deleteType !== undefined) {
+    output.writeFieldBegin('deleteType', Thrift.Type.I32, 4);
+    output.writeI32(this.deleteType);
+    output.writeFieldEnd();
+  }
+  if (this.attributes !== null && this.attributes !== undefined) {
+    output.writeFieldBegin('attributes', Thrift.Type.MAP, 6);
+    output.writeMapBegin(Thrift.Type.STRING, Thrift.Type.STRING, Thrift.objectLength(this.attributes));
+    for (var kiter68 in this.attributes)
+    {
+      if (this.attributes.hasOwnProperty(kiter68))
+      {
+        var viter69 = this.attributes[kiter68];
+        output.writeString(kiter68);
+        output.writeString(viter69);
+      }
+    }
+    output.writeMapEnd();
+    output.writeFieldEnd();
+  }
+  if (this.durability !== null && this.durability !== undefined) {
+    output.writeFieldBegin('durability', Thrift.Type.I32, 7);
+    output.writeI32(this.durability);
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+TIncrement = module.exports.TIncrement = function(args) {
+  this.row = null;
+  this.columns = null;
+  this.attributes = null;
+  this.durability = null;
+  this.cellVisibility = null;
+  if (args) {
+    if (args.row !== undefined) {
+      this.row = args.row;
+    }
+    if (args.columns !== undefined) {
+      this.columns = args.columns;
+    }
+    if (args.attributes !== undefined) {
+      this.attributes = args.attributes;
+    }
+    if (args.durability !== undefined) {
+      this.durability = args.durability;
+    }
+    if (args.cellVisibility !== undefined) {
+      this.cellVisibility = args.cellVisibility;
+    }
+  }
+};
+TIncrement.prototype = {};
+TIncrement.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+      if (ftype == Thrift.Type.STRING) {
+        this.row = input.readString();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 2:
+      if (ftype == Thrift.Type.LIST) {
+        var _size70 = 0;
+        var _rtmp374;
+        this.columns = [];
+        var _etype73 = 0;
+        _rtmp374 = input.readListBegin();
+        _etype73 = _rtmp374.etype;
+        _size70 = _rtmp374.size;
+        for (var _i75 = 0; _i75 < _size70; ++_i75)
+        {
+          var elem76 = null;
+          elem76 = new ttypes.TColumnIncrement();
+          elem76.read(input);
+          this.columns.push(elem76);
+        }
+        input.readListEnd();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 4:
+      if (ftype == Thrift.Type.MAP) {
+        var _size77 = 0;
+        var _rtmp381;
+        this.attributes = {};
+        var _ktype78 = 0;
+        var _vtype79 = 0;
+        _rtmp381 = input.readMapBegin();
+        _ktype78 = _rtmp381.ktype;
+        _vtype79 = _rtmp381.vtype;
+        _size77 = _rtmp381.size;
+        for (var _i82 = 0; _i82 < _size77; ++_i82)
+        {
+          var key83 = null;
+          var val84 = null;
+          key83 = input.readString();
+          val84 = input.readString();
+          this.attributes[key83] = val84;
+        }
+        input.readMapEnd();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 5:
+      if (ftype == Thrift.Type.I32) {
+        this.durability = input.readI32();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 6:
+      if (ftype == Thrift.Type.STRUCT) {
+        this.cellVisibility = new ttypes.TCellVisibility();
+        this.cellVisibility.read(input);
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+TIncrement.prototype.write = function(output) {
+  output.writeStructBegin('TIncrement');
+  if (this.row !== null && this.row !== undefined) {
+    output.writeFieldBegin('row', Thrift.Type.STRING, 1);
+    output.writeString(this.row);
+    output.writeFieldEnd();
+  }
+  if (this.columns !== null && this.columns !== undefined) {
+    output.writeFieldBegin('columns', Thrift.Type.LIST, 2);
+    output.writeListBegin(Thrift.Type.STRUCT, this.columns.length);
+    for (var iter85 in this.columns)
+    {
+      if (this.columns.hasOwnProperty(iter85))
+      {
+        iter85 = this.columns[iter85];
+        iter85.write(output);
+      }
+    }
+    output.writeListEnd();
+    output.writeFieldEnd();
+  }
+  if (this.attributes !== null && this.attributes !== undefined) {
+    output.writeFieldBegin('attributes', Thrift.Type.MAP, 4);
+    output.writeMapBegin(Thrift.Type.STRING, Thrift.Type.STRING, Thrift.objectLength(this.attributes));
+    for (var kiter86 in this.attributes)
+    {
+      if (this.attributes.hasOwnProperty(kiter86))
+      {
+        var viter87 = this.attributes[kiter86];
+        output.writeString(kiter86);
+        output.writeString(viter87);
+      }
+    }
+    output.writeMapEnd();
+    output.writeFieldEnd();
+  }
+  if (this.durability !== null && this.durability !== undefined) {
+    output.writeFieldBegin('durability', Thrift.Type.I32, 5);
+    output.writeI32(this.durability);
+    output.writeFieldEnd();
+  }
+  if (this.cellVisibility !== null && this.cellVisibility !== undefined) {
+    output.writeFieldBegin('cellVisibility', Thrift.Type.STRUCT, 6);
+    this.cellVisibility.write(output);
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+TAppend = module.exports.TAppend = function(args) {
+  this.row = null;
+  this.columns = null;
+  this.attributes = null;
+  this.durability = null;
+  this.cellVisibility = null;
+  if (args) {
+    if (args.row !== undefined) {
+      this.row = args.row;
+    }
+    if (args.columns !== undefined) {
+      this.columns = args.columns;
+    }
+    if (args.attributes !== undefined) {
+      this.attributes = args.attributes;
+    }
+    if (args.durability !== undefined) {
+      this.durability = args.durability;
+    }
+    if (args.cellVisibility !== undefined) {
+      this.cellVisibility = args.cellVisibility;
+    }
+  }
+};
+TAppend.prototype = {};
+TAppend.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+      if (ftype == Thrift.Type.STRING) {
+        this.row = input.readString();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 2:
+      if (ftype == Thrift.Type.LIST) {
+        var _size88 = 0;
+        var _rtmp392;
+        this.columns = [];
+        var _etype91 = 0;
+        _rtmp392 = input.readListBegin();
+        _etype91 = _rtmp392.etype;
+        _size88 = _rtmp392.size;
+        for (var _i93 = 0; _i93 < _size88; ++_i93)
+        {
+          var elem94 = null;
+          elem94 = new ttypes.TColumnValue();
+          elem94.read(input);
+          this.columns.push(elem94);
+        }
+        input.readListEnd();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 3:
+      if (ftype == Thrift.Type.MAP) {
+        var _size95 = 0;
+        var _rtmp399;
+        this.attributes = {};
+        var _ktype96 = 0;
+        var _vtype97 = 0;
+        _rtmp399 = input.readMapBegin();
+        _ktype96 = _rtmp399.ktype;
+        _vtype97 = _rtmp399.vtype;
+        _size95 = _rtmp399.size;
+        for (var _i100 = 0; _i100 < _size95; ++_i100)
+        {
+          var key101 = null;
+          var val102 = null;
+          key101 = input.readString();
+          val102 = input.readString();
+          this.attributes[key101] = val102;
+        }
+        input.readMapEnd();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 4:
+      if (ftype == Thrift.Type.I32) {
+        this.durability = input.readI32();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 5:
+      if (ftype == Thrift.Type.STRUCT) {
+        this.cellVisibility = new ttypes.TCellVisibility();
+        this.cellVisibility.read(input);
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+TAppend.prototype.write = function(output) {
+  output.writeStructBegin('TAppend');
+  if (this.row !== null && this.row !== undefined) {
+    output.writeFieldBegin('row', Thrift.Type.STRING, 1);
+    output.writeString(this.row);
+    output.writeFieldEnd();
+  }
+  if (this.columns !== null && this.columns !== undefined) {
+    output.writeFieldBegin('columns', Thrift.Type.LIST, 2);
+    output.writeListBegin(Thrift.Type.STRUCT, this.columns.length);
+    for (var iter103 in this.columns)
+    {
+      if (this.columns.hasOwnProperty(iter103))
+      {
+        iter103 = this.columns[iter103];
+        iter103.write(output);
+      }
+    }
+    output.writeListEnd();
+    output.writeFieldEnd();
+  }
+  if (this.attributes !== null && this.attributes !== undefined) {
+    output.writeFieldBegin('attributes', Thrift.Type.MAP, 3);
+    output.writeMapBegin(Thrift.Type.STRING, Thrift.Type.STRING, Thrift.objectLength(this.attributes));
+    for (var kiter104 in this.attributes)
+    {
+      if (this.attributes.hasOwnProperty(kiter104))
+      {
+        var viter105 = this.attributes[kiter104];
+        output.writeString(kiter104);
+        output.writeString(viter105);
+      }
+    }
+    output.writeMapEnd();
+    output.writeFieldEnd();
+  }
+  if (this.durability !== null && this.durability !== undefined) {
+    output.writeFieldBegin('durability', Thrift.Type.I32, 4);
+    output.writeI32(this.durability);
+    output.writeFieldEnd();
+  }
+  if (this.cellVisibility !== null && this.cellVisibility !== undefined) {
+    output.writeFieldBegin('cellVisibility', Thrift.Type.STRUCT, 5);
+    this.cellVisibility.write(output);
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+TScan = module.exports.TScan = function(args) {
+  this.startRow = null;
+  this.stopRow = null;
+  this.columns = null;
+  this.caching = null;
+  this.maxVersions = 1;
+  this.timeRange = null;
+  this.filterString = null;
+  this.batchSize = null;
+  this.attributes = null;
+  this.authorizations = null;
+  if (args) {
+    if (args.startRow !== undefined) {
+      this.startRow = args.startRow;
+    }
+    if (args.stopRow !== undefined) {
+      this.stopRow = args.stopRow;
+    }
+    if (args.columns !== undefined) {
+      this.columns = args.columns;
+    }
+    if (args.caching !== undefined) {
+      this.caching = args.caching;
+    }
+    if (args.maxVersions !== undefined) {
+      this.maxVersions = args.maxVersions;
+    }
+    if (args.timeRange !== undefined) {
+      this.timeRange = args.timeRange;
+    }
+    if (args.filterString !== undefined) {
+      this.filterString = args.filterString;
+    }
+    if (args.batchSize !== undefined) {
+      this.batchSize = args.batchSize;
+    }
+    if (args.attributes !== undefined) {
+      this.attributes = args.attributes;
+    }
+    if (args.authorizations !== undefined) {
+      this.authorizations = args.authorizations;
+    }
+  }
+};
+TScan.prototype = {};
+TScan.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+      if (ftype == Thrift.Type.STRING) {
+        this.startRow = input.readString();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 2:
+      if (ftype == Thrift.Type.STRING) {
+        this.stopRow = input.readString();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 3:
+      if (ftype == Thrift.Type.LIST) {
+        var _size106 = 0;
+        var _rtmp3110;
+        this.columns = [];
+        var _etype109 = 0;
+        _rtmp3110 = input.readListBegin();
+        _etype109 = _rtmp3110.etype;
+        _size106 = _rtmp3110.size;
+        for (var _i111 = 0; _i111 < _size106; ++_i111)
+        {
+          var elem112 = null;
+          elem112 = new ttypes.TColumn();
+          elem112.read(input);
+          this.columns.push(elem112);
+        }
+        input.readListEnd();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 4:
+      if (ftype == Thrift.Type.I32) {
+        this.caching = input.readI32();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 5:
+      if (ftype == Thrift.Type.I32) {
+        this.maxVersions = input.readI32();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 6:
+      if (ftype == Thrift.Type.STRUCT) {
+        this.timeRange = new ttypes.TTimeRange();
+        this.timeRange.read(input);
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 7:
+      if (ftype == Thrift.Type.STRING) {
+        this.filterString = input.readString();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 8:
+      if (ftype == Thrift.Type.I32) {
+        this.batchSize = input.readI32();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 9:
+      if (ftype == Thrift.Type.MAP) {
+        var _size113 = 0;
+        var _rtmp3117;
+        this.attributes = {};
+        var _ktype114 = 0;
+        var _vtype115 = 0;
+        _rtmp3117 = input.readMapBegin();
+        _ktype114 = _rtmp3117.ktype;
+        _vtype115 = _rtmp3117.vtype;
+        _size113 = _rtmp3117.size;
+        for (var _i118 = 0; _i118 < _size113; ++_i118)
+        {
+          var key119 = null;
+          var val120 = null;
+          key119 = input.readString();
+          val120 = input.readString();
+          this.attributes[key119] = val120;
+        }
+        input.readMapEnd();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 10:
+      if (ftype == Thrift.Type.STRUCT) {
+        this.authorizations = new ttypes.TAuthorization();
+        this.authorizations.read(input);
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+TScan.prototype.write = function(output) {
+  output.writeStructBegin('TScan');
+  if (this.startRow !== null && this.startRow !== undefined) {
+    output.writeFieldBegin('startRow', Thrift.Type.STRING, 1);
+    output.writeString(this.startRow);
+    output.writeFieldEnd();
+  }
+  if (this.stopRow !== null && this.stopRow !== undefined) {
+    output.writeFieldBegin('stopRow', Thrift.Type.STRING, 2);
+    output.writeString(this.stopRow);
+    output.writeFieldEnd();
+  }
+  if (this.columns !== null && this.columns !== undefined) {
+    output.writeFieldBegin('columns', Thrift.Type.LIST, 3);
+    output.writeListBegin(Thrift.Type.STRUCT, this.columns.length);
+    for (var iter121 in this.columns)
+    {
+      if (this.columns.hasOwnProperty(iter121))
+      {
+        iter121 = this.columns[iter121];
+        iter121.write(output);
+      }
+    }
+    output.writeListEnd();
+    output.writeFieldEnd();
+  }
+  if (this.caching !== null && this.caching !== undefined) {
+    output.writeFieldBegin('caching', Thrift.Type.I32, 4);
+    output.writeI32(this.caching);
+    output.writeFieldEnd();
+  }
+  if (this.maxVersions !== null && this.maxVersions !== undefined) {
+    output.writeFieldBegin('maxVersions', Thrift.Type.I32, 5);
+    output.writeI32(this.maxVersions);
+    output.writeFieldEnd();
+  }
+  if (this.timeRange !== null && this.timeRange !== undefined) {
+    output.writeFieldBegin('timeRange', Thrift.Type.STRUCT, 6);
+    this.timeRange.write(output);
+    output.writeFieldEnd();
+  }
+  if (this.filterString !== null && this.filterString !== undefined) {
+    output.writeFieldBegin('filterString', Thrift.Type.STRING, 7);
+    output.writeString(this.filterString);
+    output.writeFieldEnd();
+  }
+  if (this.batchSize !== null && this.batchSize !== undefined) {
+    output.writeFieldBegin('batchSize', Thrift.Type.I32, 8);
+    output.writeI32(this.batchSize);
+    output.writeFieldEnd();
+  }
+  if (this.attributes !== null && this.attributes !== undefined) {
+    output.writeFieldBegin('attributes', Thrift.Type.MAP, 9);
+    output.writeMapBegin(Thrift.Type.STRING, Thrift.Type.STRING, Thrift.objectLength(this.attributes));
+    for (var kiter122 in this.attributes)
+    {
+      if (this.attributes.hasOwnProperty(kiter122))
+      {
+        var viter123 = this.attributes[kiter122];
+        output.writeString(kiter122);
+        output.writeString(viter123);
+      }
+    }
+    output.writeMapEnd();
+    output.writeFieldEnd();
+  }
+  if (this.authorizations !== null && this.authorizations !== undefined) {
+    output.writeFieldBegin('authorizations', Thrift.Type.STRUCT, 10);
+    this.authorizations.write(output);
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+TMutation = module.exports.TMutation = function(args) {
+  this.put = null;
+  this.deleteSingle = null;
+  if (args) {
+    if (args.put !== undefined) {
+      this.put = args.put;
+    }
+    if (args.deleteSingle !== undefined) {
+      this.deleteSingle = args.deleteSingle;
+    }
+  }
+};
+TMutation.prototype = {};
+TMutation.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+      if (ftype == Thrift.Type.STRUCT) {
+        this.put = new ttypes.TPut();
+        this.put.read(input);
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 2:
+      if (ftype == Thrift.Type.STRUCT) {
+        this.deleteSingle = new ttypes.TDelete();
+        this.deleteSingle.read(input);
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+TMutation.prototype.write = function(output) {
+  output.writeStructBegin('TMutation');
+  if (this.put !== null && this.put !== undefined) {
+    output.writeFieldBegin('put', Thrift.Type.STRUCT, 1);
+    this.put.write(output);
+    output.writeFieldEnd();
+  }
+  if (this.deleteSingle !== null && this.deleteSingle !== undefined) {
+    output.writeFieldBegin('deleteSingle', Thrift.Type.STRUCT, 2);
+    this.deleteSingle.write(output);
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+TRowMutations = module.exports.TRowMutations = function(args) {
+  this.row = null;
+  this.mutations = null;
+  if (args) {
+    if (args.row !== undefined) {
+      this.row = args.row;
+    }
+    if (args.mutations !== undefined) {
+      this.mutations = args.mutations;
+    }
+  }
+};
+TRowMutations.prototype = {};
+TRowMutations.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+      if (ftype == Thrift.Type.STRING) {
+        this.row = input.readString();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 2:
+      if (ftype == Thrift.Type.LIST) {
+        var _size124 = 0;
+        var _rtmp3128;
+        this.mutations = [];
+        var _etype127 = 0;
+        _rtmp3128 = input.readListBegin();
+        _etype127 = _rtmp3128.etype;
+        _size124 = _rtmp3128.size;
+        for (var _i129 = 0; _i129 < _size124; ++_i129)
+        {
+          var elem130 = null;
+          elem130 = new ttypes.TMutation();
+          elem130.read(input);
+          this.mutations.push(elem130);
+        }
+        input.readListEnd();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+TRowMutations.prototype.write = function(output) {
+  output.writeStructBegin('TRowMutations');
+  if (this.row !== null && this.row !== undefined) {
+    output.writeFieldBegin('row', Thrift.Type.STRING, 1);
+    output.writeString(this.row);
+    output.writeFieldEnd();
+  }
+  if (this.mutations !== null && this.mutations !== undefined) {
+    output.writeFieldBegin('mutations', Thrift.Type.LIST, 2);
+    output.writeListBegin(Thrift.Type.STRUCT, this.mutations.length);
+    for (var iter131 in this.mutations)
+    {
+      if (this.mutations.hasOwnProperty(iter131))
+      {
+        iter131 = this.mutations[iter131];
+        iter131.write(output);
+      }
+    }
+    output.writeListEnd();
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+TIOError = module.exports.TIOError = function(args) {
+  Thrift.TException.call(this, "TIOError")
+  this.name = "TIOError"
+  this.message = null;
+  if (args) {
+    if (args.message !== undefined) {
+      this.message = args.message;
+    }
+  }
+};
+Thrift.inherits(TIOError, Thrift.TException);
+TIOError.prototype.name = 'TIOError';
+TIOError.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+      if (ftype == Thrift.Type.STRING) {
+        this.message = input.readString();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 0:
+        input.skip(ftype);
+        break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+TIOError.prototype.write = function(output) {
+  output.writeStructBegin('TIOError');
+  if (this.message !== null && this.message !== undefined) {
+    output.writeFieldBegin('message', Thrift.Type.STRING, 1);
+    output.writeString(this.message);
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+TIllegalArgument = module.exports.TIllegalArgument = function(args) {
+  Thrift.TException.call(this, "TIllegalArgument")
+  this.name = "TIllegalArgument"
+  this.message = null;
+  if (args) {
+    if (args.message !== undefined) {
+      this.message = args.message;
+    }
+  }
+};
+Thrift.inherits(TIllegalArgument, Thrift.TException);
+TIllegalArgument.prototype.name = 'TIllegalArgument';
+TIllegalArgument.prototype.read = function(input) {
+  input.readStructBegin();
+  while (true)
+  {
+    var ret = input.readFieldBegin();
+    var fname = ret.fname;
+    var ftype = ret.ftype;
+    var fid = ret.fid;
+    if (ftype == Thrift.Type.STOP) {
+      break;
+    }
+    switch (fid)
+    {
+      case 1:
+      if (ftype == Thrift.Type.STRING) {
+        this.message = input.readString();
+      } else {
+        input.skip(ftype);
+      }
+      break;
+      case 0:
+        input.skip(ftype);
+        break;
+      default:
+        input.skip(ftype);
+    }
+    input.readFieldEnd();
+  }
+  input.readStructEnd();
+  return;
+};
+
+TIllegalArgument.prototype.write = function(output) {
+  output.writeStructBegin('TIllegalArgument');
+  if (this.message !== null && this.message !== undefined) {
+    output.writeFieldBegin('message', Thrift.Type.STRING, 1);
+    output.writeString(this.message);
+    output.writeFieldEnd();
+  }
+  output.writeFieldStop();
+  output.writeStructEnd();
+  return;
+};
+
+
+},{"thrift":181}],42:[function(require,module,exports){
+/**
+ * Created by rubinus on 14-10-20.
+ */
+
+"use strict";
+
+/**
+ * Module dependencies.
+ */
+
+var Client = require('./lib/client');
+
+exports.client = Client.create;
+},{"./lib/client":43}],43:[function(require,module,exports){
+/**
+ * Created by rubinus on 14-10-20.
+ */
+'use strict';
+
+var _ = require('underscore');
+var Int64 = require('node-int64');
+
+var Get = require('./get');
+var Put = require('./put');
+var Del = require('./del');
+var Inc = require('./inc');
+var Scan = require('./scan');
+var thrift = require('thrift');
+var HBase = require('../gen-nodejs/THBaseService');
+var HBaseTypes = require('../gen-nodejs/hbase_types');
+
+
+var Client = function(options) {
+    if (!options.host || !options.port) {
+        callback(true,'host or port is none');
+    }
+    this.host = options.host || 'master';
+    this.port = options.port || '9090';
+
+    var connection = thrift.createConnection(this.host, this.port);
+    this.connection = connection;
+};
+
+Client.create = function (options) {
+    return new Client(options);
+};
+
+Client.prototype.getClient = function (callback) {
+    var that = this;
+    this.connection.on('connect', function () {
+        var client = thrift.createClient(HBase, that.connection);
+        callback(null,client);
+    });
+
+    this.connection.on('error', function(err){
+        console.log('getClient error', err);
+        callback(true,err);
+    });
+};
+
+Client.prototype.Get = function(row){
+    return new Get(row);
+};
+
+Client.prototype.Put = function(row){
+    return new Put(row);
+};
+
+Client.prototype.Del = function(row){
+    return new Del(row);
+};
+
+Client.prototype.Inc = function(row){
+    return new Inc(row);
+};
+
+Client.prototype.Scan = function(){
+    return new Scan();
+};
+
+Client.prototype.scan = function (table,param,callback) {
+    var startRow = param.startRow;
+    var stopRow = param.stopRow;
+    var numRows = param.numRows;
+    if(!startRow){
+        callback(null,'rowKey is null');
+    }
+    var query = {};
+    var maxVersions = param.maxVersions;
+    query.startRow = startRow;
+    query.stopRow = stopRow;
+    var columns = [];
+    if(param.familyList && param.familyList.length > 0){
+        _.each(param.familyList,function(ele,idx){
+            columns.push(new HBaseTypes.TColumn(ele));
+        });
+        query.columns = columns;
+    }
+
+//    console.log(query);
+
+    var that = this;
+    that.getClient(function(err,client){
+        if(!err){
+
+            var tScan = new HBaseTypes.TScan(query);
+            tScan.maxVersions = maxVersions;
+
+            client.openScanner(table, tScan, function (err, scannerId) {
+
+                if (err) {
+                    callback(err.message.slice(0,120));
+                    return;
+                } else {
+                    client.getScannerRows(scannerId, numRows, function (serr, data) {
+                        if (serr) {
+                            callback(err.message.slice(0,120));
+                            return;
+                        }else{
+                            callback(null,data);
+                        }
+                    });
+                    client.closeScanner(scannerId, function (err) {
+                        if (err) {
+                            console.log(err);
+                        }
+                    });
+                }
+
+                //close connection for hbase client
+                that.connection.end();
+            });
+
+        }else{
+            callback(null);
+        }
+
+    });
+};
+
+Client.prototype.scanRow = function (table,startRow,stopRow,columns,numRows,callback) {
+    var args = arguments;
+    var query = {};
+    var numRows = 10;
+    if(args.length <=0){
+        console.log('arguments arg short of 4');
+        return;
+    }
+    var callback = args[args.length-1];
+    if(callback && typeof callback != 'function'){
+        console.log('callback is not a function');
+        return;
+    }
+    if(args.length < 4){
+        callback(null,'arguments arg short of 4');
+        return;
+    }
+    if(args.length === 4){
+        columns = [];
+    }
+    if(args.length > 5){
+        if(Object.prototype.toString.call(args[3]) != '[object Array]'){
+            callback(null,'family and qualifier must be an Array,example ["info:name"]');
+            return;
+        }
+    }
+    if(args.length >= 5){
+        numRows = numRows;
+        if(typeof args[args.length-2] !== 'number'){
+            numRows = Number(args[args.length-2]);
+        }
+    }
+
+
+
+    query.startRow = startRow;
+    query.stopRow = stopRow;
+
+    var qcolumns = [];
+    if(columns && columns.length > 0){
+        var cols = [],temp = {};
+        _.each(columns,function(ele,idx){
+            if(ele.indexOf(':') != -1){
+                cols = ele.split(':');
+                temp = {
+                    family: cols[0],
+                    qualifier: cols[1]
+                }
+            }else{
+                temp = {
+                    family: ele
+                }
+            }
+            qcolumns.push(new HBaseTypes.TColumn(temp));
+        });
+        query.columns = qcolumns;
+    }
+
+//    console.log(query);
+
+    var that = this;
+    that.getClient(function(err,client){
+        if(!err){
+
+            var tScan = new HBaseTypes.TScan(query);
+
+            client.openScanner(table, tScan, function (err, scannerId) {
+
+                if (err) {
+                    callback(err.message.slice(0,120));
+                    return;
+                } else {
+                    client.getScannerRows(scannerId, numRows, function (serr, data) {
+                        if (serr) {
+                            callback(err.message.slice(0,120));
+                            return;
+                        }else{
+                            callback(null,data);
+                        }
+                    });
+                    client.closeScanner(scannerId, function (err) {
+                        if (err) {
+                            console.log(err);
+                        }
+                    });
+                }
+
+                //close connection for hbase client
+                that.connection.end();
+            });
+
+        }else{
+            callback(null);
+        }
+
+    });
+
+};
+
+Client.prototype.get = function (table,param,callback) {
+    var row = param.row;
+    if(!row){
+        callback(null,'rowKey is null');
+    }
+    var query = {};
+    var maxVersions = param.maxVersions;
+    query.row = row;
+    var columns = [];
+    if(param.familyList && param.familyList.length > 0){
+        _.each(param.familyList,function(ele,idx){
+            columns.push(new HBaseTypes.TColumn(ele));
+        });
+        query.columns = columns;
+    }
+
+//    console.log(query);
+
+    var that = this;
+    that.getClient(function(err,client){
+        if(!err){
+
+            var tGet = new HBaseTypes.TGet(query);
+            tGet.maxVersions = maxVersions;
+
+            client.get(table, tGet, function (err, data) {
+
+                if (err) {
+                    callback(err.message.slice(0,120));
+                } else {
+                    callback(null,data);
+                }
+                //close connection for hbase client
+                that.connection.end();
+            });
+
+        }else{
+            callback(null);
+        }
+
+    });
+};
+
+Client.prototype.getRow = function (table,row,columns,versions,callback) {
+    var args = arguments;
+    var query = {};
+    var maxVersions = 1;
+
+    if(args.length <=0){
+        console.log('arguments arg short of 3');
+        return;
+    }
+    var callback = args[args.length-1];
+    if(callback && typeof callback != 'function'){
+        console.log('callback is not a function');
+        return;
+    }
+    if(args.length < 3){
+        callback(null,'arguments arg short of 3');
+        return;
+    }
+    if(args.length === 3){
+        columns = [];
+        maxVersions = 1;
+    }
+    if(args.length > 3){
+        if(Object.prototype.toString.call(args[2]) != '[object Array]'){
+            callback(null,'family and qualifier must be an Array,example ["info:name"]');
+            return;
+        }
+        maxVersions = versions;
+        if(typeof args[args.length-2] !== 'number'){
+            maxVersions = Number(args[args.length-2]);
+        }
+    }
+
+
+
+    query.row = row;
+    var qcolumns = [];
+    if(columns && columns.length > 0){
+        var cols = [],temp = {};
+        _.each(columns,function(ele,idx){
+            if(ele.indexOf(':') != -1){
+                cols = ele.split(':');
+                temp = {
+                    family: cols[0],
+                    qualifier: cols[1]
+                }
+            }else{
+                temp = {
+                    family: ele
+                }
+            }
+            qcolumns.push(new HBaseTypes.TColumn(temp));
+        });
+        query.columns = qcolumns;
+    }
+
+//    console.log(maxVersions,query);
+
+    var that = this;
+    that.getClient(function(err,client){
+        if(!err){
+
+            var tGet = new HBaseTypes.TGet(query);
+            tGet.maxVersions = maxVersions;
+
+            client.get(table, tGet, function (err, data) {
+
+                if (err) {
+                    callback(err.message.slice(0,120));
+                } else {
+                    callback(null,data);
+                }
+                //close connection for hbase client
+                that.connection.end();
+            });
+
+        }else{
+            callback(null);
+        }
+
+    });
+
+};
+
+Client.prototype.put = function (table,param,callback) {
+    var row = param.row;
+    if(!row){
+        callback(null,'rowKey is null');
+    }
+    var query = {};
+
+    query.row = row;
+    var qcolumns = [];
+    if(param.familyList && param.familyList.length > 0){
+        _.each(param.familyList,function(ele,idx){
+            qcolumns.push(new HBaseTypes.TColumnValue(ele));
+        });
+        query.columnValues = qcolumns;
+    }
+
+//    console.log(query,'--------');
+
+    var that = this;
+    that.getClient(function(err,client){
+        if(!err){
+
+            var tPut = new HBaseTypes.TPut(query);
+
+            client.put(table, tPut, function (err) {
+
+                if (err) {
+                    callback(err.message.slice(0,120));
+                } else {
+                    callback(null);
+                }
+                //close connection for hbase client
+                that.connection.end();
+            });
+
+        }else{
+            callback(null);
+        }
+
+    });
+
+};
+
+Client.prototype.putRow = function (table,row,columns,value,timestamp,callback) {
+    var args = arguments;
+    var query = {};
+
+    if(args.length <=0){
+        console.log('arguments arg short of 5');
+        return;
+    }
+    var callback = args[args.length-1];
+    if(callback && typeof callback != 'function'){
+        console.log('callback is not a function');
+        return;
+    }
+    if(args.length < 5){
+        callback('arguments arg short of 5');
+        return;
+    }
+
+    if(args.length >= 5){
+        if(args[2].indexOf(':') == -1){
+            callback('family and qualifier must have it,example ["info:name"]');
+            return;
+        }
+    }
+
+
+    query.row = row;
+    var qcolumns = [];
+    if(columns){
+        var cols = [],temp = {};
+        cols = columns.split(':');
+        temp = {
+            family: cols[0],
+            qualifier: cols[1],
+            value: value
+        };
+        if(timestamp){
+            temp.timestamp = new Int64(timestamp);
+        }
+        qcolumns.push(new HBaseTypes.TColumnValue(temp));
+        query.columnValues = qcolumns;
+    }
+
+    console.log(query);
+
+    var that = this;
+    that.getClient(function(err,client){
+        if(!err){
+
+            var tPut = new HBaseTypes.TPut(query);
+
+            client.put(table, tPut, function (err) {
+
+                if (err) {
+                    callback(err.message.slice(0,120));
+                } else {
+                    callback(null);
+                }
+                //close connection for hbase client
+                that.connection.end();
+            });
+
+        }else{
+            callback(null);
+        }
+
+    });
+
+};
+
+Client.prototype.del = function (table,param,callback) {
+    var row = param.row;
+    if(!row){
+        callback(null,'rowKey is null');
+    }
+    var query = {};
+
+    query.row = row;
+    var qcolumns = [];
+    if(param.familyList && param.familyList.length > 0){
+        _.each(param.familyList,function(ele,idx){
+            qcolumns.push(new HBaseTypes.TColumn(ele));
+        });
+        query.columns = qcolumns;
+    }
+
+//    console.log(query,'--------');
+
+    var that = this;
+    that.getClient(function(err,client){
+        if(!err){
+
+            var tDelete = new HBaseTypes.TDelete(query);
+
+            client.deleteSingle(table, tDelete, function (err) {
+
+                if (err) {
+                    callback(err.message.slice(0,120));
+                } else {
+                    callback(null);
+                }
+                //close connection for hbase client
+                that.connection.end();
+            });
+
+        }else{
+            callback(null);
+        }
+
+    });
+
+};
+
+Client.prototype.delRow = function (table,row,columns,timestamp,callback) {
+    var args = arguments;
+    var query = {};
+
+    if(args.length <=0){
+        console.log('arguments arg short of 3');
+        return;
+    }
+    var callback = args[args.length-1];
+    if(callback && typeof callback != 'function'){
+        console.log('callback is not a function');
+        return;
+    }
+    if(args.length < 3){
+        callback('arguments arg short of 3');
+        return;
+    }
+
+    if(args.length === 5){
+        if(args[2].indexOf(':') == -1){
+            callback('family and qualifier must have it,example ["info:name"]');
+            return;
+        }
+    }
+
+
+    query.row = row;
+    var qcolumns = [];
+    if(args.length >= 4 && columns){
+        var cols = [],temp = {};
+        if(columns.indexOf(':') != -1){
+            cols = columns.split(':');
+            temp = {
+                family: cols[0],
+                qualifier: cols[1]
+            };
+            if(args.length === 5){
+                temp.timestamp = timestamp;
+            }
+        }else{
+            temp = {
+                family: columns
+            }
+        }
+
+        qcolumns.push(new HBaseTypes.TColumn(temp));
+        query.columns = qcolumns;
+    }
+
+//    console.log(query);
+
+    var that = this;
+    that.getClient(function(err,client){
+        if(!err){
+
+            var tDelete = new HBaseTypes.TDelete(query);
+
+            client.deleteSingle(table, tDelete, function (err,data) {
+
+                if (err) {
+                    callback(err.message.slice(0,120));
+                } else {
+                    callback(null,data);
+                }
+                //close connection for hbase client
+                that.connection.end();
+            });
+
+        }else{
+            callback(null);
+        }
+
+    });
+
+};
+
+Client.prototype.inc = function (table,param,callback) {
+    var row = param.row;
+    if(!row){
+        callback(null,'rowKey is null');
+    }
+    var query = {};
+
+    query.row = row;
+    var qcolumns = [];
+    if(param.familyList && param.familyList.length > 0){
+        _.each(param.familyList,function(ele,idx){
+            qcolumns.push(new HBaseTypes.TColumn(ele));
+        });
+        query.columns = qcolumns;
+    }
+
+//    console.log(query,'--------');
+
+    var that = this;
+    that.getClient(function(err,client){
+        if(!err){
+
+            var tIncrement = new HBaseTypes.TIncrement(query);
+
+            client.increment(table, tIncrement, function (err,data) {
+
+                if (err) {
+                    callback(err.message.slice(0,120));
+                } else {
+                    callback(null,data);
+                }
+                //close connection for hbase client
+                that.connection.end();
+            });
+
+        }else{
+            callback(null);
+        }
+
+    });
+
+};
+
+Client.prototype.incRow = function (table,row,columns,callback) {
+    var args = arguments;
+    var query = {};
+
+    if(args.length <=0){
+        console.log('arguments arg short of 3');
+        return;
+    }
+    var callback = args[args.length-1];
+    if(callback && typeof callback != 'function'){
+        console.log('callback is not a function');
+        return;
+    }
+    if(args.length < 3){
+        callback('arguments arg short of 3');
+        return;
+    }
+
+    if(args.length >= 3){
+        if(args[2].indexOf(':') == -1){
+            callback('family and qualifier must have it,example ["info:counter"]');
+            return;
+        }
+    }
+
+
+    query.row = row;
+    var qcolumns = [];
+    if(columns){
+        var cols = [],temp = {};
+        cols = columns.split(':');
+        temp = {
+            family: cols[0],
+            qualifier: cols[1]
+        };
+        qcolumns.push(new HBaseTypes.TColumn(temp));
+        query.columns = qcolumns;
+    }
+
+//    console.log(query);
+
+    var that = this;
+    that.getClient(function(err,client){
+        if(!err){
+
+            var tIncrement = new HBaseTypes.TIncrement(query);
+
+            client.increment(table, tIncrement, function (err,data) {
+
+                if (err) {
+                    callback(err.message.slice(0,120));
+                } else {
+                    callback(null,data);
+                }
+                //close connection for hbase client
+                that.connection.end();
+            });
+
+        }else{
+            callback(null);
+        }
+
+    });
+
+};
+
+module.exports = Client;
+},{"../gen-nodejs/THBaseService":40,"../gen-nodejs/hbase_types":41,"./del":44,"./get":45,"./inc":46,"./put":47,"./scan":48,"node-int64":39,"thrift":181,"underscore":186}],44:[function(require,module,exports){
+/**
+ * Created by rubinus on 14-10-22.
+ */
+
+"use strict";
+
+
+function Del(row) {
+    if (!(this instanceof Del)) {
+        return new Del(row);
+    }
+    this.row = row;
+    this.familyList = [];
+}
+
+Del.prototype.add = function (family, qualifier, timestamp) {
+    var familyMap = {};
+    familyMap.family = family;
+    if(qualifier){
+        familyMap.qualifier = qualifier;
+    }
+    if(timestamp){
+        familyMap.timestamp = timestamp;
+    }
+    this.familyList.push(familyMap);
+    return this;
+};
+
+Del.prototype.addFamily = function (family) {
+    var familyMap = {};
+    familyMap.family = family;
+    this.familyList.push(familyMap);
+    return this;
+};
+
+Del.prototype.addColumn = function (family, qualifier) {
+    var familyMap = {};
+    familyMap.family = family;
+    familyMap.qualifier = qualifier;
+    this.familyList.push(familyMap);
+    return this;
+};
+
+Del.prototype.addTimestamp = function (family, qualifier, timestamp) {
+    var familyMap = {};
+    familyMap.family = family;
+    familyMap.qualifier = qualifier;
+    familyMap.timestamp = timestamp;
+    this.familyList.push(familyMap);
+    return this;
+};
+
+
+
+module.exports = Del;
+},{}],45:[function(require,module,exports){
+/**
+ * Created by rubinus on 14-10-22.
+ */
+
+"use strict";
+
+var Int64 = require('node-int64');
+
+function Get(row) {
+    if (!(this instanceof Get)) {
+        return new Get(row);
+    }
+    this.row = row;
+    this.maxVersions = 1;
+    this.familyList = [];
+}
+
+Get.prototype.add = function (family, qualifier, timestamp) {
+    var familyMap = {};
+    familyMap.family = family;
+    if(qualifier){
+        familyMap.qualifier = qualifier;
+    }
+    if(timestamp){
+        familyMap.timestamp = new Int64(timestamp);
+    }
+    this.familyList.push(familyMap);
+    return this;
+};
+
+Get.prototype.addFamily = function (family) {
+    var familyMap = {};
+    familyMap.family = family;
+    this.familyList.push(familyMap);
+    return this;
+};
+
+Get.prototype.addColumn = function (family, qualifier) {
+    var familyMap = {};
+    familyMap.family = family;
+    familyMap.qualifier = qualifier;
+    this.familyList.push(familyMap);
+    return this;
+};
+
+Get.prototype.addTimestamp = function (family, qualifier, timestamp) {
+    var familyMap = {};
+    familyMap.family = family;
+    familyMap.qualifier = qualifier;
+    familyMap.timestamp = new Int64(timestamp);
+    this.familyList.push(familyMap);
+    return this;
+};
+
+Get.prototype.setMaxVersions = function (maxVersions) {
+    if (maxVersions <= 0) {
+        maxVersions = 1;
+    }
+    this.maxVersions = maxVersions;
+    return this;
+};
+
+
+//Get.prototype.getRow = function () {
+//    return this.row;
+//};
+//
+//Get.prototype.getMaxVersions = function () {
+//    return this.maxVersions;
+//};
+
+
+module.exports = Get;
+},{"node-int64":39}],46:[function(require,module,exports){
+/**
+ * Created by rubinus on 14-10-22.
+ */
+
+"use strict";
+
+function Inc(row) {
+    if (!(this instanceof Inc)) {
+        return new Inc(row);
+    }
+    this.row = row;
+    this.familyList = [];
+}
+
+Inc.prototype.add = function (family, qualifier) {
+    var familyMap = {};
+    familyMap.family = family;
+    familyMap.qualifier = qualifier;
+    this.familyList.push(familyMap);
+    return this;
+};
+
+
+
+module.exports = Inc;
+},{}],47:[function(require,module,exports){
+/**
+ * Created by rubinus on 14-10-22.
+ */
+
+"use strict";
+
+var Int64 = require('node-int64');
+
+function Put(row) {
+    if (!(this instanceof Put)) {
+        return new Put(row);
+    }
+    this.row = row;
+    this.familyList = [];
+}
+
+Put.prototype.add = function (family, qualifier, value, timestamp) {
+    var familyMap = {};
+    familyMap.family = family;
+    familyMap.qualifier = qualifier;
+    familyMap.value = value;
+    if(timestamp){
+        familyMap.timestamp = new Int64(timestamp);
+    }
+    this.familyList.push(familyMap);
+    return this;
+};
+
+
+
+module.exports = Put;
+},{"node-int64":39}],48:[function(require,module,exports){
+/**
+ * Created by rubinus on 14-10-22.
+ */
+
+"use strict";
+
+var Int64 = require('node-int64');
+
+function Scan() {
+    if (!(this instanceof Scan)) {
+        return new Scan();
+    }
+    this.startRow = 0;
+    this.stopRow = 0;
+    this.numRows = 10;
+    this.maxVersions = 1;
+    this.familyList = [];
+}
+
+Scan.prototype.addStartRow = function (startRow) {
+    this.startRow = startRow;
+    return this;
+};
+
+Scan.prototype.addStopRow = function (stopRow) {
+    this.stopRow = stopRow;
+    return this;
+};
+
+Scan.prototype.addNumRows = function (numRows) {
+    this.numRows = numRows;
+    return this;
+};
+
+Scan.prototype.add = function (family, qualifier, timestamp) {
+    var familyMap = {};
+    familyMap.family = family;
+    if(qualifier){
+        familyMap.qualifier = qualifier;
+    }
+    if(timestamp){
+        familyMap.timestamp = new Int64(timestamp);
+    }
+    this.familyList.push(familyMap);
+    return this;
+};
+
+Scan.prototype.addFamily = function (family) {
+    var familyMap = {};
+    familyMap.family = family;
+    this.familyList.push(familyMap);
+    return this;
+};
+
+Scan.prototype.addColumn = function (family, qualifier) {
+    var familyMap = {};
+    familyMap.family = family;
+    familyMap.qualifier = qualifier;
+    this.familyList.push(familyMap);
+    return this;
+};
+
+Scan.prototype.addTimestamp = function (family, qualifier, timestamp) {
+    var familyMap = {};
+    familyMap.family = family;
+    familyMap.qualifier = qualifier;
+    familyMap.timestamp = new Int64(timestamp);
+    this.familyList.push(familyMap);
+    return this;
+};
+
+Scan.prototype.setMaxVersions = function (maxVersions) {
+    if (maxVersions <= 0) {
+        maxVersions = 1;
+    }
+    this.maxVersions = maxVersions;
+    return this;
+};
+
+
+//Get.prototype.getRow = function () {
+//    return this.row;
+//};
+//
+//Get.prototype.getMaxVersions = function () {
+//    return this.maxVersions;
+//};
+
+
+module.exports = Scan;
+},{"node-int64":39}],49:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -1419,7 +9982,7 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],32:[function(require,module,exports){
+},{}],50:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -1456,7 +10019,7 @@ var AutoFocusUtils = {
 };
 
 module.exports = AutoFocusUtils;
-},{"./ReactMount":96,"./findDOMNode":139,"fbjs/lib/focusNode":13}],33:[function(require,module,exports){
+},{"./ReactMount":114,"./findDOMNode":157,"fbjs/lib/focusNode":19}],51:[function(require,module,exports){
 /**
  * Copyright 2013-2015 Facebook, Inc.
  * All rights reserved.
@@ -1862,7 +10425,7 @@ var BeforeInputEventPlugin = {
 };
 
 module.exports = BeforeInputEventPlugin;
-},{"./EventConstants":45,"./EventPropagators":49,"./FallbackCompositionState":50,"./SyntheticCompositionEvent":121,"./SyntheticInputEvent":125,"fbjs/lib/ExecutionEnvironment":5,"fbjs/lib/keyOf":23}],34:[function(require,module,exports){
+},{"./EventConstants":63,"./EventPropagators":67,"./FallbackCompositionState":68,"./SyntheticCompositionEvent":139,"./SyntheticInputEvent":143,"fbjs/lib/ExecutionEnvironment":11,"fbjs/lib/keyOf":29}],52:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -2002,7 +10565,7 @@ var CSSProperty = {
 };
 
 module.exports = CSSProperty;
-},{}],35:[function(require,module,exports){
+},{}],53:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -2180,7 +10743,7 @@ ReactPerf.measureMethods(CSSPropertyOperations, 'CSSPropertyOperations', {
 
 module.exports = CSSPropertyOperations;
 }).call(this,require('_process'))
-},{"./CSSProperty":34,"./ReactPerf":102,"./dangerousStyleValue":136,"_process":31,"fbjs/lib/ExecutionEnvironment":5,"fbjs/lib/camelizeStyleName":7,"fbjs/lib/hyphenateStyleName":18,"fbjs/lib/memoizeStringOnly":25,"fbjs/lib/warning":30}],36:[function(require,module,exports){
+},{"./CSSProperty":52,"./ReactPerf":120,"./dangerousStyleValue":154,"_process":49,"fbjs/lib/ExecutionEnvironment":11,"fbjs/lib/camelizeStyleName":13,"fbjs/lib/hyphenateStyleName":24,"fbjs/lib/memoizeStringOnly":31,"fbjs/lib/warning":36}],54:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -2276,7 +10839,7 @@ PooledClass.addPoolingTo(CallbackQueue);
 
 module.exports = CallbackQueue;
 }).call(this,require('_process'))
-},{"./Object.assign":53,"./PooledClass":54,"_process":31,"fbjs/lib/invariant":19}],37:[function(require,module,exports){
+},{"./Object.assign":71,"./PooledClass":72,"_process":49,"fbjs/lib/invariant":25}],55:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -2598,7 +11161,7 @@ var ChangeEventPlugin = {
 };
 
 module.exports = ChangeEventPlugin;
-},{"./EventConstants":45,"./EventPluginHub":46,"./EventPropagators":49,"./ReactUpdates":114,"./SyntheticEvent":123,"./getEventTarget":145,"./isEventSupported":150,"./isTextInputElement":151,"fbjs/lib/ExecutionEnvironment":5,"fbjs/lib/keyOf":23}],38:[function(require,module,exports){
+},{"./EventConstants":63,"./EventPluginHub":64,"./EventPropagators":67,"./ReactUpdates":132,"./SyntheticEvent":141,"./getEventTarget":163,"./isEventSupported":168,"./isTextInputElement":169,"fbjs/lib/ExecutionEnvironment":11,"fbjs/lib/keyOf":29}],56:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -2622,7 +11185,7 @@ var ClientReactRootIndex = {
 };
 
 module.exports = ClientReactRootIndex;
-},{}],39:[function(require,module,exports){
+},{}],57:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -2754,7 +11317,7 @@ ReactPerf.measureMethods(DOMChildrenOperations, 'DOMChildrenOperations', {
 
 module.exports = DOMChildrenOperations;
 }).call(this,require('_process'))
-},{"./Danger":42,"./ReactMultiChildUpdateTypes":98,"./ReactPerf":102,"./setInnerHTML":155,"./setTextContent":156,"_process":31,"fbjs/lib/invariant":19}],40:[function(require,module,exports){
+},{"./Danger":60,"./ReactMultiChildUpdateTypes":116,"./ReactPerf":120,"./setInnerHTML":173,"./setTextContent":174,"_process":49,"fbjs/lib/invariant":25}],58:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -2991,7 +11554,7 @@ var DOMProperty = {
 
 module.exports = DOMProperty;
 }).call(this,require('_process'))
-},{"_process":31,"fbjs/lib/invariant":19}],41:[function(require,module,exports){
+},{"_process":49,"fbjs/lib/invariant":25}],59:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -3219,7 +11782,7 @@ ReactPerf.measureMethods(DOMPropertyOperations, 'DOMPropertyOperations', {
 
 module.exports = DOMPropertyOperations;
 }).call(this,require('_process'))
-},{"./DOMProperty":40,"./ReactPerf":102,"./quoteAttributeValueForBrowser":153,"_process":31,"fbjs/lib/warning":30}],42:[function(require,module,exports){
+},{"./DOMProperty":58,"./ReactPerf":120,"./quoteAttributeValueForBrowser":171,"_process":49,"fbjs/lib/warning":36}],60:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -3367,7 +11930,7 @@ var Danger = {
 
 module.exports = Danger;
 }).call(this,require('_process'))
-},{"_process":31,"fbjs/lib/ExecutionEnvironment":5,"fbjs/lib/createNodesFromMarkup":10,"fbjs/lib/emptyFunction":11,"fbjs/lib/getMarkupWrap":15,"fbjs/lib/invariant":19}],43:[function(require,module,exports){
+},{"_process":49,"fbjs/lib/ExecutionEnvironment":11,"fbjs/lib/createNodesFromMarkup":16,"fbjs/lib/emptyFunction":17,"fbjs/lib/getMarkupWrap":21,"fbjs/lib/invariant":25}],61:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -3395,7 +11958,7 @@ var keyOf = require('fbjs/lib/keyOf');
 var DefaultEventPluginOrder = [keyOf({ ResponderEventPlugin: null }), keyOf({ SimpleEventPlugin: null }), keyOf({ TapEventPlugin: null }), keyOf({ EnterLeaveEventPlugin: null }), keyOf({ ChangeEventPlugin: null }), keyOf({ SelectEventPlugin: null }), keyOf({ BeforeInputEventPlugin: null })];
 
 module.exports = DefaultEventPluginOrder;
-},{"fbjs/lib/keyOf":23}],44:[function(require,module,exports){
+},{"fbjs/lib/keyOf":29}],62:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -3520,7 +12083,7 @@ var EnterLeaveEventPlugin = {
 };
 
 module.exports = EnterLeaveEventPlugin;
-},{"./EventConstants":45,"./EventPropagators":49,"./ReactMount":96,"./SyntheticMouseEvent":127,"fbjs/lib/keyOf":23}],45:[function(require,module,exports){
+},{"./EventConstants":63,"./EventPropagators":67,"./ReactMount":114,"./SyntheticMouseEvent":145,"fbjs/lib/keyOf":29}],63:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -3613,7 +12176,7 @@ var EventConstants = {
 };
 
 module.exports = EventConstants;
-},{"fbjs/lib/keyMirror":22}],46:[function(require,module,exports){
+},{"fbjs/lib/keyMirror":28}],64:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -3895,7 +12458,7 @@ var EventPluginHub = {
 
 module.exports = EventPluginHub;
 }).call(this,require('_process'))
-},{"./EventPluginRegistry":47,"./EventPluginUtils":48,"./ReactErrorUtils":87,"./accumulateInto":133,"./forEachAccumulated":141,"_process":31,"fbjs/lib/invariant":19,"fbjs/lib/warning":30}],47:[function(require,module,exports){
+},{"./EventPluginRegistry":65,"./EventPluginUtils":66,"./ReactErrorUtils":105,"./accumulateInto":151,"./forEachAccumulated":159,"_process":49,"fbjs/lib/invariant":25,"fbjs/lib/warning":36}],65:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -4118,7 +12681,7 @@ var EventPluginRegistry = {
 
 module.exports = EventPluginRegistry;
 }).call(this,require('_process'))
-},{"_process":31,"fbjs/lib/invariant":19}],48:[function(require,module,exports){
+},{"_process":49,"fbjs/lib/invariant":25}],66:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -4323,7 +12886,7 @@ var EventPluginUtils = {
 
 module.exports = EventPluginUtils;
 }).call(this,require('_process'))
-},{"./EventConstants":45,"./ReactErrorUtils":87,"_process":31,"fbjs/lib/invariant":19,"fbjs/lib/warning":30}],49:[function(require,module,exports){
+},{"./EventConstants":63,"./ReactErrorUtils":105,"_process":49,"fbjs/lib/invariant":25,"fbjs/lib/warning":36}],67:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -4461,7 +13024,7 @@ var EventPropagators = {
 
 module.exports = EventPropagators;
 }).call(this,require('_process'))
-},{"./EventConstants":45,"./EventPluginHub":46,"./accumulateInto":133,"./forEachAccumulated":141,"_process":31,"fbjs/lib/warning":30}],50:[function(require,module,exports){
+},{"./EventConstants":63,"./EventPluginHub":64,"./accumulateInto":151,"./forEachAccumulated":159,"_process":49,"fbjs/lib/warning":36}],68:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -4557,7 +13120,7 @@ assign(FallbackCompositionState.prototype, {
 PooledClass.addPoolingTo(FallbackCompositionState);
 
 module.exports = FallbackCompositionState;
-},{"./Object.assign":53,"./PooledClass":54,"./getTextContentAccessor":148}],51:[function(require,module,exports){
+},{"./Object.assign":71,"./PooledClass":72,"./getTextContentAccessor":166}],69:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -4788,7 +13351,7 @@ var HTMLDOMPropertyConfig = {
 };
 
 module.exports = HTMLDOMPropertyConfig;
-},{"./DOMProperty":40,"fbjs/lib/ExecutionEnvironment":5}],52:[function(require,module,exports){
+},{"./DOMProperty":58,"fbjs/lib/ExecutionEnvironment":11}],70:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -4925,7 +13488,7 @@ var LinkedValueUtils = {
 
 module.exports = LinkedValueUtils;
 }).call(this,require('_process'))
-},{"./ReactPropTypeLocations":104,"./ReactPropTypes":105,"_process":31,"fbjs/lib/invariant":19,"fbjs/lib/warning":30}],53:[function(require,module,exports){
+},{"./ReactPropTypeLocations":122,"./ReactPropTypes":123,"_process":49,"fbjs/lib/invariant":25,"fbjs/lib/warning":36}],71:[function(require,module,exports){
 /**
  * Copyright 2014-2015, Facebook, Inc.
  * All rights reserved.
@@ -4973,7 +13536,7 @@ function assign(target, sources) {
 }
 
 module.exports = assign;
-},{}],54:[function(require,module,exports){
+},{}],72:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -5095,7 +13658,7 @@ var PooledClass = {
 
 module.exports = PooledClass;
 }).call(this,require('_process'))
-},{"_process":31,"fbjs/lib/invariant":19}],55:[function(require,module,exports){
+},{"_process":49,"fbjs/lib/invariant":25}],73:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -5136,7 +13699,7 @@ React.__SECRET_DOM_DO_NOT_USE_OR_YOU_WILL_BE_FIRED = ReactDOM;
 React.__SECRET_DOM_SERVER_DO_NOT_USE_OR_YOU_WILL_BE_FIRED = ReactDOMServer;
 
 module.exports = React;
-},{"./Object.assign":53,"./ReactDOM":66,"./ReactDOMServer":76,"./ReactIsomorphic":94,"./deprecated":137}],56:[function(require,module,exports){
+},{"./Object.assign":71,"./ReactDOM":84,"./ReactDOMServer":94,"./ReactIsomorphic":112,"./deprecated":155}],74:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -5175,7 +13738,7 @@ var ReactBrowserComponentMixin = {
 
 module.exports = ReactBrowserComponentMixin;
 }).call(this,require('_process'))
-},{"./ReactInstanceMap":93,"./findDOMNode":139,"_process":31,"fbjs/lib/warning":30}],57:[function(require,module,exports){
+},{"./ReactInstanceMap":111,"./findDOMNode":157,"_process":49,"fbjs/lib/warning":36}],75:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -5500,7 +14063,7 @@ ReactPerf.measureMethods(ReactBrowserEventEmitter, 'ReactBrowserEventEmitter', {
 });
 
 module.exports = ReactBrowserEventEmitter;
-},{"./EventConstants":45,"./EventPluginHub":46,"./EventPluginRegistry":47,"./Object.assign":53,"./ReactEventEmitterMixin":88,"./ReactPerf":102,"./ViewportMetrics":132,"./isEventSupported":150}],58:[function(require,module,exports){
+},{"./EventConstants":63,"./EventPluginHub":64,"./EventPluginRegistry":65,"./Object.assign":71,"./ReactEventEmitterMixin":106,"./ReactPerf":120,"./ViewportMetrics":150,"./isEventSupported":168}],76:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2014-2015, Facebook, Inc.
@@ -5625,7 +14188,7 @@ var ReactChildReconciler = {
 
 module.exports = ReactChildReconciler;
 }).call(this,require('_process'))
-},{"./ReactReconciler":107,"./instantiateReactComponent":149,"./shouldUpdateReactComponent":157,"./traverseAllChildren":158,"_process":31,"fbjs/lib/warning":30}],59:[function(require,module,exports){
+},{"./ReactReconciler":125,"./instantiateReactComponent":167,"./shouldUpdateReactComponent":175,"./traverseAllChildren":176,"_process":49,"fbjs/lib/warning":36}],77:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -5808,7 +14371,7 @@ var ReactChildren = {
 };
 
 module.exports = ReactChildren;
-},{"./PooledClass":54,"./ReactElement":83,"./traverseAllChildren":158,"fbjs/lib/emptyFunction":11}],60:[function(require,module,exports){
+},{"./PooledClass":72,"./ReactElement":101,"./traverseAllChildren":176,"fbjs/lib/emptyFunction":17}],78:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -6582,7 +15145,7 @@ var ReactClass = {
 
 module.exports = ReactClass;
 }).call(this,require('_process'))
-},{"./Object.assign":53,"./ReactComponent":61,"./ReactElement":83,"./ReactNoopUpdateQueue":100,"./ReactPropTypeLocationNames":103,"./ReactPropTypeLocations":104,"_process":31,"fbjs/lib/emptyObject":12,"fbjs/lib/invariant":19,"fbjs/lib/keyMirror":22,"fbjs/lib/keyOf":23,"fbjs/lib/warning":30}],61:[function(require,module,exports){
+},{"./Object.assign":71,"./ReactComponent":79,"./ReactElement":101,"./ReactNoopUpdateQueue":118,"./ReactPropTypeLocationNames":121,"./ReactPropTypeLocations":122,"_process":49,"fbjs/lib/emptyObject":18,"fbjs/lib/invariant":25,"fbjs/lib/keyMirror":28,"fbjs/lib/keyOf":29,"fbjs/lib/warning":36}],79:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -6707,7 +15270,7 @@ if (process.env.NODE_ENV !== 'production') {
 
 module.exports = ReactComponent;
 }).call(this,require('_process'))
-},{"./ReactNoopUpdateQueue":100,"./canDefineProperty":135,"_process":31,"fbjs/lib/emptyObject":12,"fbjs/lib/invariant":19,"fbjs/lib/warning":30}],62:[function(require,module,exports){
+},{"./ReactNoopUpdateQueue":118,"./canDefineProperty":153,"_process":49,"fbjs/lib/emptyObject":18,"fbjs/lib/invariant":25,"fbjs/lib/warning":36}],80:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -6749,7 +15312,7 @@ var ReactComponentBrowserEnvironment = {
 };
 
 module.exports = ReactComponentBrowserEnvironment;
-},{"./ReactDOMIDOperations":71,"./ReactMount":96}],63:[function(require,module,exports){
+},{"./ReactDOMIDOperations":89,"./ReactMount":114}],81:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2014-2015, Facebook, Inc.
@@ -6803,7 +15366,7 @@ var ReactComponentEnvironment = {
 
 module.exports = ReactComponentEnvironment;
 }).call(this,require('_process'))
-},{"_process":31,"fbjs/lib/invariant":19}],64:[function(require,module,exports){
+},{"_process":49,"fbjs/lib/invariant":25}],82:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -7500,7 +16063,7 @@ var ReactCompositeComponent = {
 
 module.exports = ReactCompositeComponent;
 }).call(this,require('_process'))
-},{"./Object.assign":53,"./ReactComponentEnvironment":63,"./ReactCurrentOwner":65,"./ReactElement":83,"./ReactInstanceMap":93,"./ReactPerf":102,"./ReactPropTypeLocationNames":103,"./ReactPropTypeLocations":104,"./ReactReconciler":107,"./ReactUpdateQueue":113,"./shouldUpdateReactComponent":157,"_process":31,"fbjs/lib/emptyObject":12,"fbjs/lib/invariant":19,"fbjs/lib/warning":30}],65:[function(require,module,exports){
+},{"./Object.assign":71,"./ReactComponentEnvironment":81,"./ReactCurrentOwner":83,"./ReactElement":101,"./ReactInstanceMap":111,"./ReactPerf":120,"./ReactPropTypeLocationNames":121,"./ReactPropTypeLocations":122,"./ReactReconciler":125,"./ReactUpdateQueue":131,"./shouldUpdateReactComponent":175,"_process":49,"fbjs/lib/emptyObject":18,"fbjs/lib/invariant":25,"fbjs/lib/warning":36}],83:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -7531,7 +16094,7 @@ var ReactCurrentOwner = {
 };
 
 module.exports = ReactCurrentOwner;
-},{}],66:[function(require,module,exports){
+},{}],84:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -7626,7 +16189,7 @@ if (process.env.NODE_ENV !== 'production') {
 
 module.exports = React;
 }).call(this,require('_process'))
-},{"./ReactCurrentOwner":65,"./ReactDOMTextComponent":77,"./ReactDefaultInjection":80,"./ReactInstanceHandles":92,"./ReactMount":96,"./ReactPerf":102,"./ReactReconciler":107,"./ReactUpdates":114,"./ReactVersion":115,"./findDOMNode":139,"./renderSubtreeIntoContainer":154,"_process":31,"fbjs/lib/ExecutionEnvironment":5,"fbjs/lib/warning":30}],67:[function(require,module,exports){
+},{"./ReactCurrentOwner":83,"./ReactDOMTextComponent":95,"./ReactDefaultInjection":98,"./ReactInstanceHandles":110,"./ReactMount":114,"./ReactPerf":120,"./ReactReconciler":125,"./ReactUpdates":132,"./ReactVersion":133,"./findDOMNode":157,"./renderSubtreeIntoContainer":172,"_process":49,"fbjs/lib/ExecutionEnvironment":11,"fbjs/lib/warning":36}],85:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -7677,7 +16240,7 @@ var ReactDOMButton = {
 };
 
 module.exports = ReactDOMButton;
-},{}],68:[function(require,module,exports){
+},{}],86:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -8642,7 +17205,7 @@ assign(ReactDOMComponent.prototype, ReactDOMComponent.Mixin, ReactMultiChild.Mix
 
 module.exports = ReactDOMComponent;
 }).call(this,require('_process'))
-},{"./AutoFocusUtils":32,"./CSSPropertyOperations":35,"./DOMProperty":40,"./DOMPropertyOperations":41,"./EventConstants":45,"./Object.assign":53,"./ReactBrowserEventEmitter":57,"./ReactComponentBrowserEnvironment":62,"./ReactDOMButton":67,"./ReactDOMInput":72,"./ReactDOMOption":73,"./ReactDOMSelect":74,"./ReactDOMTextarea":78,"./ReactMount":96,"./ReactMultiChild":97,"./ReactPerf":102,"./ReactUpdateQueue":113,"./canDefineProperty":135,"./escapeTextContentForBrowser":138,"./isEventSupported":150,"./setInnerHTML":155,"./setTextContent":156,"./validateDOMNesting":159,"_process":31,"fbjs/lib/invariant":19,"fbjs/lib/keyOf":23,"fbjs/lib/shallowEqual":28,"fbjs/lib/warning":30}],69:[function(require,module,exports){
+},{"./AutoFocusUtils":50,"./CSSPropertyOperations":53,"./DOMProperty":58,"./DOMPropertyOperations":59,"./EventConstants":63,"./Object.assign":71,"./ReactBrowserEventEmitter":75,"./ReactComponentBrowserEnvironment":80,"./ReactDOMButton":85,"./ReactDOMInput":90,"./ReactDOMOption":91,"./ReactDOMSelect":92,"./ReactDOMTextarea":96,"./ReactMount":114,"./ReactMultiChild":115,"./ReactPerf":120,"./ReactUpdateQueue":131,"./canDefineProperty":153,"./escapeTextContentForBrowser":156,"./isEventSupported":168,"./setInnerHTML":173,"./setTextContent":174,"./validateDOMNesting":177,"_process":49,"fbjs/lib/invariant":25,"fbjs/lib/keyOf":29,"fbjs/lib/shallowEqual":34,"fbjs/lib/warning":36}],87:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -8822,7 +17385,7 @@ var ReactDOMFactories = mapObject({
 
 module.exports = ReactDOMFactories;
 }).call(this,require('_process'))
-},{"./ReactElement":83,"./ReactElementValidator":84,"_process":31,"fbjs/lib/mapObject":24}],70:[function(require,module,exports){
+},{"./ReactElement":101,"./ReactElementValidator":102,"_process":49,"fbjs/lib/mapObject":30}],88:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -8841,7 +17404,7 @@ var ReactDOMFeatureFlags = {
 };
 
 module.exports = ReactDOMFeatureFlags;
-},{}],71:[function(require,module,exports){
+},{}],89:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -8938,7 +17501,7 @@ ReactPerf.measureMethods(ReactDOMIDOperations, 'ReactDOMIDOperations', {
 
 module.exports = ReactDOMIDOperations;
 }).call(this,require('_process'))
-},{"./DOMChildrenOperations":39,"./DOMPropertyOperations":41,"./ReactMount":96,"./ReactPerf":102,"_process":31,"fbjs/lib/invariant":19}],72:[function(require,module,exports){
+},{"./DOMChildrenOperations":57,"./DOMPropertyOperations":59,"./ReactMount":114,"./ReactPerf":120,"_process":49,"fbjs/lib/invariant":25}],90:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -9094,7 +17657,7 @@ function _handleChange(event) {
 
 module.exports = ReactDOMInput;
 }).call(this,require('_process'))
-},{"./LinkedValueUtils":52,"./Object.assign":53,"./ReactDOMIDOperations":71,"./ReactMount":96,"./ReactUpdates":114,"_process":31,"fbjs/lib/invariant":19}],73:[function(require,module,exports){
+},{"./LinkedValueUtils":70,"./Object.assign":71,"./ReactDOMIDOperations":89,"./ReactMount":114,"./ReactUpdates":132,"_process":49,"fbjs/lib/invariant":25}],91:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -9186,7 +17749,7 @@ var ReactDOMOption = {
 
 module.exports = ReactDOMOption;
 }).call(this,require('_process'))
-},{"./Object.assign":53,"./ReactChildren":59,"./ReactDOMSelect":74,"_process":31,"fbjs/lib/warning":30}],74:[function(require,module,exports){
+},{"./Object.assign":71,"./ReactChildren":77,"./ReactDOMSelect":92,"_process":49,"fbjs/lib/warning":36}],92:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -9377,7 +17940,7 @@ function _handleChange(event) {
 
 module.exports = ReactDOMSelect;
 }).call(this,require('_process'))
-},{"./LinkedValueUtils":52,"./Object.assign":53,"./ReactMount":96,"./ReactUpdates":114,"_process":31,"fbjs/lib/warning":30}],75:[function(require,module,exports){
+},{"./LinkedValueUtils":70,"./Object.assign":71,"./ReactMount":114,"./ReactUpdates":132,"_process":49,"fbjs/lib/warning":36}],93:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -9590,7 +18153,7 @@ var ReactDOMSelection = {
 };
 
 module.exports = ReactDOMSelection;
-},{"./getNodeForCharacterOffset":147,"./getTextContentAccessor":148,"fbjs/lib/ExecutionEnvironment":5}],76:[function(require,module,exports){
+},{"./getNodeForCharacterOffset":165,"./getTextContentAccessor":166,"fbjs/lib/ExecutionEnvironment":11}],94:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -9617,7 +18180,7 @@ var ReactDOMServer = {
 };
 
 module.exports = ReactDOMServer;
-},{"./ReactDefaultInjection":80,"./ReactServerRendering":111,"./ReactVersion":115}],77:[function(require,module,exports){
+},{"./ReactDefaultInjection":98,"./ReactServerRendering":129,"./ReactVersion":133}],95:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -9747,7 +18310,7 @@ assign(ReactDOMTextComponent.prototype, {
 
 module.exports = ReactDOMTextComponent;
 }).call(this,require('_process'))
-},{"./DOMChildrenOperations":39,"./DOMPropertyOperations":41,"./Object.assign":53,"./ReactComponentBrowserEnvironment":62,"./ReactMount":96,"./escapeTextContentForBrowser":138,"./setTextContent":156,"./validateDOMNesting":159,"_process":31}],78:[function(require,module,exports){
+},{"./DOMChildrenOperations":57,"./DOMPropertyOperations":59,"./Object.assign":71,"./ReactComponentBrowserEnvironment":80,"./ReactMount":114,"./escapeTextContentForBrowser":156,"./setTextContent":174,"./validateDOMNesting":177,"_process":49}],96:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -9863,7 +18426,7 @@ function _handleChange(event) {
 
 module.exports = ReactDOMTextarea;
 }).call(this,require('_process'))
-},{"./LinkedValueUtils":52,"./Object.assign":53,"./ReactDOMIDOperations":71,"./ReactUpdates":114,"_process":31,"fbjs/lib/invariant":19,"fbjs/lib/warning":30}],79:[function(require,module,exports){
+},{"./LinkedValueUtils":70,"./Object.assign":71,"./ReactDOMIDOperations":89,"./ReactUpdates":132,"_process":49,"fbjs/lib/invariant":25,"fbjs/lib/warning":36}],97:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -9931,7 +18494,7 @@ var ReactDefaultBatchingStrategy = {
 };
 
 module.exports = ReactDefaultBatchingStrategy;
-},{"./Object.assign":53,"./ReactUpdates":114,"./Transaction":131,"fbjs/lib/emptyFunction":11}],80:[function(require,module,exports){
+},{"./Object.assign":71,"./ReactUpdates":132,"./Transaction":149,"fbjs/lib/emptyFunction":17}],98:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -10031,7 +18594,7 @@ module.exports = {
   inject: inject
 };
 }).call(this,require('_process'))
-},{"./BeforeInputEventPlugin":33,"./ChangeEventPlugin":37,"./ClientReactRootIndex":38,"./DefaultEventPluginOrder":43,"./EnterLeaveEventPlugin":44,"./HTMLDOMPropertyConfig":51,"./ReactBrowserComponentMixin":56,"./ReactComponentBrowserEnvironment":62,"./ReactDOMComponent":68,"./ReactDOMTextComponent":77,"./ReactDefaultBatchingStrategy":79,"./ReactDefaultPerf":81,"./ReactEventListener":89,"./ReactInjection":90,"./ReactInstanceHandles":92,"./ReactMount":96,"./ReactReconcileTransaction":106,"./SVGDOMPropertyConfig":116,"./SelectEventPlugin":117,"./ServerReactRootIndex":118,"./SimpleEventPlugin":119,"_process":31,"fbjs/lib/ExecutionEnvironment":5}],81:[function(require,module,exports){
+},{"./BeforeInputEventPlugin":51,"./ChangeEventPlugin":55,"./ClientReactRootIndex":56,"./DefaultEventPluginOrder":61,"./EnterLeaveEventPlugin":62,"./HTMLDOMPropertyConfig":69,"./ReactBrowserComponentMixin":74,"./ReactComponentBrowserEnvironment":80,"./ReactDOMComponent":86,"./ReactDOMTextComponent":95,"./ReactDefaultBatchingStrategy":97,"./ReactDefaultPerf":99,"./ReactEventListener":107,"./ReactInjection":108,"./ReactInstanceHandles":110,"./ReactMount":114,"./ReactReconcileTransaction":124,"./SVGDOMPropertyConfig":134,"./SelectEventPlugin":135,"./ServerReactRootIndex":136,"./SimpleEventPlugin":137,"_process":49,"fbjs/lib/ExecutionEnvironment":11}],99:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -10269,7 +18832,7 @@ var ReactDefaultPerf = {
 };
 
 module.exports = ReactDefaultPerf;
-},{"./DOMProperty":40,"./ReactDefaultPerfAnalysis":82,"./ReactMount":96,"./ReactPerf":102,"fbjs/lib/performanceNow":27}],82:[function(require,module,exports){
+},{"./DOMProperty":58,"./ReactDefaultPerfAnalysis":100,"./ReactMount":114,"./ReactPerf":120,"fbjs/lib/performanceNow":33}],100:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -10471,7 +19034,7 @@ var ReactDefaultPerfAnalysis = {
 };
 
 module.exports = ReactDefaultPerfAnalysis;
-},{"./Object.assign":53}],83:[function(require,module,exports){
+},{"./Object.assign":71}],101:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2014-2015, Facebook, Inc.
@@ -10721,7 +19284,7 @@ ReactElement.isValidElement = function (object) {
 
 module.exports = ReactElement;
 }).call(this,require('_process'))
-},{"./Object.assign":53,"./ReactCurrentOwner":65,"./canDefineProperty":135,"_process":31}],84:[function(require,module,exports){
+},{"./Object.assign":71,"./ReactCurrentOwner":83,"./canDefineProperty":153,"_process":49}],102:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2014-2015, Facebook, Inc.
@@ -11005,7 +19568,7 @@ var ReactElementValidator = {
 
 module.exports = ReactElementValidator;
 }).call(this,require('_process'))
-},{"./ReactCurrentOwner":65,"./ReactElement":83,"./ReactPropTypeLocationNames":103,"./ReactPropTypeLocations":104,"./canDefineProperty":135,"./getIteratorFn":146,"_process":31,"fbjs/lib/invariant":19,"fbjs/lib/warning":30}],85:[function(require,module,exports){
+},{"./ReactCurrentOwner":83,"./ReactElement":101,"./ReactPropTypeLocationNames":121,"./ReactPropTypeLocations":122,"./canDefineProperty":153,"./getIteratorFn":164,"_process":49,"fbjs/lib/invariant":25,"fbjs/lib/warning":36}],103:[function(require,module,exports){
 /**
  * Copyright 2014-2015, Facebook, Inc.
  * All rights reserved.
@@ -11061,7 +19624,7 @@ assign(ReactEmptyComponent.prototype, {
 ReactEmptyComponent.injection = ReactEmptyComponentInjection;
 
 module.exports = ReactEmptyComponent;
-},{"./Object.assign":53,"./ReactElement":83,"./ReactEmptyComponentRegistry":86,"./ReactReconciler":107}],86:[function(require,module,exports){
+},{"./Object.assign":71,"./ReactElement":101,"./ReactEmptyComponentRegistry":104,"./ReactReconciler":125}],104:[function(require,module,exports){
 /**
  * Copyright 2014-2015, Facebook, Inc.
  * All rights reserved.
@@ -11110,7 +19673,7 @@ var ReactEmptyComponentRegistry = {
 };
 
 module.exports = ReactEmptyComponentRegistry;
-},{}],87:[function(require,module,exports){
+},{}],105:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -11190,7 +19753,7 @@ if (process.env.NODE_ENV !== 'production') {
 
 module.exports = ReactErrorUtils;
 }).call(this,require('_process'))
-},{"_process":31}],88:[function(require,module,exports){
+},{"_process":49}],106:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -11229,7 +19792,7 @@ var ReactEventEmitterMixin = {
 };
 
 module.exports = ReactEventEmitterMixin;
-},{"./EventPluginHub":46}],89:[function(require,module,exports){
+},{"./EventPluginHub":64}],107:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -11441,7 +20004,7 @@ var ReactEventListener = {
 };
 
 module.exports = ReactEventListener;
-},{"./Object.assign":53,"./PooledClass":54,"./ReactInstanceHandles":92,"./ReactMount":96,"./ReactUpdates":114,"./getEventTarget":145,"fbjs/lib/EventListener":4,"fbjs/lib/ExecutionEnvironment":5,"fbjs/lib/getUnboundedScrollPosition":16}],90:[function(require,module,exports){
+},{"./Object.assign":71,"./PooledClass":72,"./ReactInstanceHandles":110,"./ReactMount":114,"./ReactUpdates":132,"./getEventTarget":163,"fbjs/lib/EventListener":10,"fbjs/lib/ExecutionEnvironment":11,"fbjs/lib/getUnboundedScrollPosition":22}],108:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -11480,7 +20043,7 @@ var ReactInjection = {
 };
 
 module.exports = ReactInjection;
-},{"./DOMProperty":40,"./EventPluginHub":46,"./ReactBrowserEventEmitter":57,"./ReactClass":60,"./ReactComponentEnvironment":63,"./ReactEmptyComponent":85,"./ReactNativeComponent":99,"./ReactPerf":102,"./ReactRootIndex":109,"./ReactUpdates":114}],91:[function(require,module,exports){
+},{"./DOMProperty":58,"./EventPluginHub":64,"./ReactBrowserEventEmitter":75,"./ReactClass":78,"./ReactComponentEnvironment":81,"./ReactEmptyComponent":103,"./ReactNativeComponent":117,"./ReactPerf":120,"./ReactRootIndex":127,"./ReactUpdates":132}],109:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -11605,7 +20168,7 @@ var ReactInputSelection = {
 };
 
 module.exports = ReactInputSelection;
-},{"./ReactDOMSelection":75,"fbjs/lib/containsNode":8,"fbjs/lib/focusNode":13,"fbjs/lib/getActiveElement":14}],92:[function(require,module,exports){
+},{"./ReactDOMSelection":93,"fbjs/lib/containsNode":14,"fbjs/lib/focusNode":19,"fbjs/lib/getActiveElement":20}],110:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -11910,7 +20473,7 @@ var ReactInstanceHandles = {
 
 module.exports = ReactInstanceHandles;
 }).call(this,require('_process'))
-},{"./ReactRootIndex":109,"_process":31,"fbjs/lib/invariant":19}],93:[function(require,module,exports){
+},{"./ReactRootIndex":127,"_process":49,"fbjs/lib/invariant":25}],111:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -11958,7 +20521,7 @@ var ReactInstanceMap = {
 };
 
 module.exports = ReactInstanceMap;
-},{}],94:[function(require,module,exports){
+},{}],112:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -12035,7 +20598,7 @@ var React = {
 
 module.exports = React;
 }).call(this,require('_process'))
-},{"./Object.assign":53,"./ReactChildren":59,"./ReactClass":60,"./ReactComponent":61,"./ReactDOMFactories":69,"./ReactElement":83,"./ReactElementValidator":84,"./ReactPropTypes":105,"./ReactVersion":115,"./onlyChild":152,"_process":31}],95:[function(require,module,exports){
+},{"./Object.assign":71,"./ReactChildren":77,"./ReactClass":78,"./ReactComponent":79,"./ReactDOMFactories":87,"./ReactElement":101,"./ReactElementValidator":102,"./ReactPropTypes":123,"./ReactVersion":133,"./onlyChild":170,"_process":49}],113:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -12081,7 +20644,7 @@ var ReactMarkupChecksum = {
 };
 
 module.exports = ReactMarkupChecksum;
-},{"./adler32":134}],96:[function(require,module,exports){
+},{"./adler32":152}],114:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -12934,7 +21497,7 @@ ReactPerf.measureMethods(ReactMount, 'ReactMount', {
 
 module.exports = ReactMount;
 }).call(this,require('_process'))
-},{"./DOMProperty":40,"./Object.assign":53,"./ReactBrowserEventEmitter":57,"./ReactCurrentOwner":65,"./ReactDOMFeatureFlags":70,"./ReactElement":83,"./ReactEmptyComponentRegistry":86,"./ReactInstanceHandles":92,"./ReactInstanceMap":93,"./ReactMarkupChecksum":95,"./ReactPerf":102,"./ReactReconciler":107,"./ReactUpdateQueue":113,"./ReactUpdates":114,"./instantiateReactComponent":149,"./setInnerHTML":155,"./shouldUpdateReactComponent":157,"./validateDOMNesting":159,"_process":31,"fbjs/lib/containsNode":8,"fbjs/lib/emptyObject":12,"fbjs/lib/invariant":19,"fbjs/lib/warning":30}],97:[function(require,module,exports){
+},{"./DOMProperty":58,"./Object.assign":71,"./ReactBrowserEventEmitter":75,"./ReactCurrentOwner":83,"./ReactDOMFeatureFlags":88,"./ReactElement":101,"./ReactEmptyComponentRegistry":104,"./ReactInstanceHandles":110,"./ReactInstanceMap":111,"./ReactMarkupChecksum":113,"./ReactPerf":120,"./ReactReconciler":125,"./ReactUpdateQueue":131,"./ReactUpdates":132,"./instantiateReactComponent":167,"./setInnerHTML":173,"./shouldUpdateReactComponent":175,"./validateDOMNesting":177,"_process":49,"fbjs/lib/containsNode":14,"fbjs/lib/emptyObject":18,"fbjs/lib/invariant":25,"fbjs/lib/warning":36}],115:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -13433,7 +21996,7 @@ var ReactMultiChild = {
 
 module.exports = ReactMultiChild;
 }).call(this,require('_process'))
-},{"./ReactChildReconciler":58,"./ReactComponentEnvironment":63,"./ReactCurrentOwner":65,"./ReactMultiChildUpdateTypes":98,"./ReactReconciler":107,"./flattenChildren":140,"_process":31}],98:[function(require,module,exports){
+},{"./ReactChildReconciler":76,"./ReactComponentEnvironment":81,"./ReactCurrentOwner":83,"./ReactMultiChildUpdateTypes":116,"./ReactReconciler":125,"./flattenChildren":158,"_process":49}],116:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -13466,7 +22029,7 @@ var ReactMultiChildUpdateTypes = keyMirror({
 });
 
 module.exports = ReactMultiChildUpdateTypes;
-},{"fbjs/lib/keyMirror":22}],99:[function(require,module,exports){
+},{"fbjs/lib/keyMirror":28}],117:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2014-2015, Facebook, Inc.
@@ -13563,7 +22126,7 @@ var ReactNativeComponent = {
 
 module.exports = ReactNativeComponent;
 }).call(this,require('_process'))
-},{"./Object.assign":53,"_process":31,"fbjs/lib/invariant":19}],100:[function(require,module,exports){
+},{"./Object.assign":71,"_process":49,"fbjs/lib/invariant":25}],118:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2015, Facebook, Inc.
@@ -13684,7 +22247,7 @@ var ReactNoopUpdateQueue = {
 
 module.exports = ReactNoopUpdateQueue;
 }).call(this,require('_process'))
-},{"_process":31,"fbjs/lib/warning":30}],101:[function(require,module,exports){
+},{"_process":49,"fbjs/lib/warning":36}],119:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -13778,7 +22341,7 @@ var ReactOwner = {
 
 module.exports = ReactOwner;
 }).call(this,require('_process'))
-},{"_process":31,"fbjs/lib/invariant":19}],102:[function(require,module,exports){
+},{"_process":49,"fbjs/lib/invariant":25}],120:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -13877,7 +22440,7 @@ function _noMeasure(objName, fnName, func) {
 
 module.exports = ReactPerf;
 }).call(this,require('_process'))
-},{"_process":31}],103:[function(require,module,exports){
+},{"_process":49}],121:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -13904,7 +22467,7 @@ if (process.env.NODE_ENV !== 'production') {
 
 module.exports = ReactPropTypeLocationNames;
 }).call(this,require('_process'))
-},{"_process":31}],104:[function(require,module,exports){
+},{"_process":49}],122:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -13927,7 +22490,7 @@ var ReactPropTypeLocations = keyMirror({
 });
 
 module.exports = ReactPropTypeLocations;
-},{"fbjs/lib/keyMirror":22}],105:[function(require,module,exports){
+},{"fbjs/lib/keyMirror":28}],123:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -14284,7 +22847,7 @@ function getClassName(propValue) {
 }
 
 module.exports = ReactPropTypes;
-},{"./ReactElement":83,"./ReactPropTypeLocationNames":103,"./getIteratorFn":146,"fbjs/lib/emptyFunction":11}],106:[function(require,module,exports){
+},{"./ReactElement":101,"./ReactPropTypeLocationNames":121,"./getIteratorFn":164,"fbjs/lib/emptyFunction":17}],124:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -14436,7 +22999,7 @@ assign(ReactReconcileTransaction.prototype, Transaction.Mixin, Mixin);
 PooledClass.addPoolingTo(ReactReconcileTransaction);
 
 module.exports = ReactReconcileTransaction;
-},{"./CallbackQueue":36,"./Object.assign":53,"./PooledClass":54,"./ReactBrowserEventEmitter":57,"./ReactDOMFeatureFlags":70,"./ReactInputSelection":91,"./Transaction":131}],107:[function(require,module,exports){
+},{"./CallbackQueue":54,"./Object.assign":71,"./PooledClass":72,"./ReactBrowserEventEmitter":75,"./ReactDOMFeatureFlags":88,"./ReactInputSelection":109,"./Transaction":149}],125:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -14544,7 +23107,7 @@ var ReactReconciler = {
 };
 
 module.exports = ReactReconciler;
-},{"./ReactRef":108}],108:[function(require,module,exports){
+},{"./ReactRef":126}],126:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -14623,7 +23186,7 @@ ReactRef.detachRefs = function (instance, element) {
 };
 
 module.exports = ReactRef;
-},{"./ReactOwner":101}],109:[function(require,module,exports){
+},{"./ReactOwner":119}],127:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -14653,7 +23216,7 @@ var ReactRootIndex = {
 };
 
 module.exports = ReactRootIndex;
-},{}],110:[function(require,module,exports){
+},{}],128:[function(require,module,exports){
 /**
  * Copyright 2014-2015, Facebook, Inc.
  * All rights reserved.
@@ -14677,7 +23240,7 @@ var ReactServerBatchingStrategy = {
 };
 
 module.exports = ReactServerBatchingStrategy;
-},{}],111:[function(require,module,exports){
+},{}],129:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -14763,7 +23326,7 @@ module.exports = {
   renderToStaticMarkup: renderToStaticMarkup
 };
 }).call(this,require('_process'))
-},{"./ReactDefaultBatchingStrategy":79,"./ReactElement":83,"./ReactInstanceHandles":92,"./ReactMarkupChecksum":95,"./ReactServerBatchingStrategy":110,"./ReactServerRenderingTransaction":112,"./ReactUpdates":114,"./instantiateReactComponent":149,"_process":31,"fbjs/lib/emptyObject":12,"fbjs/lib/invariant":19}],112:[function(require,module,exports){
+},{"./ReactDefaultBatchingStrategy":97,"./ReactElement":101,"./ReactInstanceHandles":110,"./ReactMarkupChecksum":113,"./ReactServerBatchingStrategy":128,"./ReactServerRenderingTransaction":130,"./ReactUpdates":132,"./instantiateReactComponent":167,"_process":49,"fbjs/lib/emptyObject":18,"fbjs/lib/invariant":25}],130:[function(require,module,exports){
 /**
  * Copyright 2014-2015, Facebook, Inc.
  * All rights reserved.
@@ -14851,7 +23414,7 @@ assign(ReactServerRenderingTransaction.prototype, Transaction.Mixin, Mixin);
 PooledClass.addPoolingTo(ReactServerRenderingTransaction);
 
 module.exports = ReactServerRenderingTransaction;
-},{"./CallbackQueue":36,"./Object.assign":53,"./PooledClass":54,"./Transaction":131,"fbjs/lib/emptyFunction":11}],113:[function(require,module,exports){
+},{"./CallbackQueue":54,"./Object.assign":71,"./PooledClass":72,"./Transaction":149,"fbjs/lib/emptyFunction":17}],131:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2015, Facebook, Inc.
@@ -15111,7 +23674,7 @@ var ReactUpdateQueue = {
 
 module.exports = ReactUpdateQueue;
 }).call(this,require('_process'))
-},{"./Object.assign":53,"./ReactCurrentOwner":65,"./ReactElement":83,"./ReactInstanceMap":93,"./ReactUpdates":114,"_process":31,"fbjs/lib/invariant":19,"fbjs/lib/warning":30}],114:[function(require,module,exports){
+},{"./Object.assign":71,"./ReactCurrentOwner":83,"./ReactElement":101,"./ReactInstanceMap":111,"./ReactUpdates":132,"_process":49,"fbjs/lib/invariant":25,"fbjs/lib/warning":36}],132:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -15337,7 +23900,7 @@ var ReactUpdates = {
 
 module.exports = ReactUpdates;
 }).call(this,require('_process'))
-},{"./CallbackQueue":36,"./Object.assign":53,"./PooledClass":54,"./ReactPerf":102,"./ReactReconciler":107,"./Transaction":131,"_process":31,"fbjs/lib/invariant":19}],115:[function(require,module,exports){
+},{"./CallbackQueue":54,"./Object.assign":71,"./PooledClass":72,"./ReactPerf":120,"./ReactReconciler":125,"./Transaction":149,"_process":49,"fbjs/lib/invariant":25}],133:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -15352,7 +23915,7 @@ module.exports = ReactUpdates;
 'use strict';
 
 module.exports = '0.14.8';
-},{}],116:[function(require,module,exports){
+},{}],134:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -15480,7 +24043,7 @@ var SVGDOMPropertyConfig = {
 };
 
 module.exports = SVGDOMPropertyConfig;
-},{"./DOMProperty":40}],117:[function(require,module,exports){
+},{"./DOMProperty":58}],135:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -15682,7 +24245,7 @@ var SelectEventPlugin = {
 };
 
 module.exports = SelectEventPlugin;
-},{"./EventConstants":45,"./EventPropagators":49,"./ReactInputSelection":91,"./SyntheticEvent":123,"./isTextInputElement":151,"fbjs/lib/ExecutionEnvironment":5,"fbjs/lib/getActiveElement":14,"fbjs/lib/keyOf":23,"fbjs/lib/shallowEqual":28}],118:[function(require,module,exports){
+},{"./EventConstants":63,"./EventPropagators":67,"./ReactInputSelection":109,"./SyntheticEvent":141,"./isTextInputElement":169,"fbjs/lib/ExecutionEnvironment":11,"fbjs/lib/getActiveElement":20,"fbjs/lib/keyOf":29,"fbjs/lib/shallowEqual":34}],136:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -15712,7 +24275,7 @@ var ServerReactRootIndex = {
 };
 
 module.exports = ServerReactRootIndex;
-},{}],119:[function(require,module,exports){
+},{}],137:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -16302,7 +24865,7 @@ var SimpleEventPlugin = {
 
 module.exports = SimpleEventPlugin;
 }).call(this,require('_process'))
-},{"./EventConstants":45,"./EventPropagators":49,"./ReactMount":96,"./SyntheticClipboardEvent":120,"./SyntheticDragEvent":122,"./SyntheticEvent":123,"./SyntheticFocusEvent":124,"./SyntheticKeyboardEvent":126,"./SyntheticMouseEvent":127,"./SyntheticTouchEvent":128,"./SyntheticUIEvent":129,"./SyntheticWheelEvent":130,"./getEventCharCode":142,"_process":31,"fbjs/lib/EventListener":4,"fbjs/lib/emptyFunction":11,"fbjs/lib/invariant":19,"fbjs/lib/keyOf":23}],120:[function(require,module,exports){
+},{"./EventConstants":63,"./EventPropagators":67,"./ReactMount":114,"./SyntheticClipboardEvent":138,"./SyntheticDragEvent":140,"./SyntheticEvent":141,"./SyntheticFocusEvent":142,"./SyntheticKeyboardEvent":144,"./SyntheticMouseEvent":145,"./SyntheticTouchEvent":146,"./SyntheticUIEvent":147,"./SyntheticWheelEvent":148,"./getEventCharCode":160,"_process":49,"fbjs/lib/EventListener":10,"fbjs/lib/emptyFunction":17,"fbjs/lib/invariant":25,"fbjs/lib/keyOf":29}],138:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -16342,7 +24905,7 @@ function SyntheticClipboardEvent(dispatchConfig, dispatchMarker, nativeEvent, na
 SyntheticEvent.augmentClass(SyntheticClipboardEvent, ClipboardEventInterface);
 
 module.exports = SyntheticClipboardEvent;
-},{"./SyntheticEvent":123}],121:[function(require,module,exports){
+},{"./SyntheticEvent":141}],139:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -16380,7 +24943,7 @@ function SyntheticCompositionEvent(dispatchConfig, dispatchMarker, nativeEvent, 
 SyntheticEvent.augmentClass(SyntheticCompositionEvent, CompositionEventInterface);
 
 module.exports = SyntheticCompositionEvent;
-},{"./SyntheticEvent":123}],122:[function(require,module,exports){
+},{"./SyntheticEvent":141}],140:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -16418,7 +24981,7 @@ function SyntheticDragEvent(dispatchConfig, dispatchMarker, nativeEvent, nativeE
 SyntheticMouseEvent.augmentClass(SyntheticDragEvent, DragEventInterface);
 
 module.exports = SyntheticDragEvent;
-},{"./SyntheticMouseEvent":127}],123:[function(require,module,exports){
+},{"./SyntheticMouseEvent":145}],141:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -16601,7 +25164,7 @@ PooledClass.addPoolingTo(SyntheticEvent, PooledClass.fourArgumentPooler);
 
 module.exports = SyntheticEvent;
 }).call(this,require('_process'))
-},{"./Object.assign":53,"./PooledClass":54,"_process":31,"fbjs/lib/emptyFunction":11,"fbjs/lib/warning":30}],124:[function(require,module,exports){
+},{"./Object.assign":71,"./PooledClass":72,"_process":49,"fbjs/lib/emptyFunction":17,"fbjs/lib/warning":36}],142:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -16639,7 +25202,7 @@ function SyntheticFocusEvent(dispatchConfig, dispatchMarker, nativeEvent, native
 SyntheticUIEvent.augmentClass(SyntheticFocusEvent, FocusEventInterface);
 
 module.exports = SyntheticFocusEvent;
-},{"./SyntheticUIEvent":129}],125:[function(require,module,exports){
+},{"./SyntheticUIEvent":147}],143:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -16678,7 +25241,7 @@ function SyntheticInputEvent(dispatchConfig, dispatchMarker, nativeEvent, native
 SyntheticEvent.augmentClass(SyntheticInputEvent, InputEventInterface);
 
 module.exports = SyntheticInputEvent;
-},{"./SyntheticEvent":123}],126:[function(require,module,exports){
+},{"./SyntheticEvent":141}],144:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -16764,7 +25327,7 @@ function SyntheticKeyboardEvent(dispatchConfig, dispatchMarker, nativeEvent, nat
 SyntheticUIEvent.augmentClass(SyntheticKeyboardEvent, KeyboardEventInterface);
 
 module.exports = SyntheticKeyboardEvent;
-},{"./SyntheticUIEvent":129,"./getEventCharCode":142,"./getEventKey":143,"./getEventModifierState":144}],127:[function(require,module,exports){
+},{"./SyntheticUIEvent":147,"./getEventCharCode":160,"./getEventKey":161,"./getEventModifierState":162}],145:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -16838,7 +25401,7 @@ function SyntheticMouseEvent(dispatchConfig, dispatchMarker, nativeEvent, native
 SyntheticUIEvent.augmentClass(SyntheticMouseEvent, MouseEventInterface);
 
 module.exports = SyntheticMouseEvent;
-},{"./SyntheticUIEvent":129,"./ViewportMetrics":132,"./getEventModifierState":144}],128:[function(require,module,exports){
+},{"./SyntheticUIEvent":147,"./ViewportMetrics":150,"./getEventModifierState":162}],146:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -16885,7 +25448,7 @@ function SyntheticTouchEvent(dispatchConfig, dispatchMarker, nativeEvent, native
 SyntheticUIEvent.augmentClass(SyntheticTouchEvent, TouchEventInterface);
 
 module.exports = SyntheticTouchEvent;
-},{"./SyntheticUIEvent":129,"./getEventModifierState":144}],129:[function(require,module,exports){
+},{"./SyntheticUIEvent":147,"./getEventModifierState":162}],147:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -16946,7 +25509,7 @@ function SyntheticUIEvent(dispatchConfig, dispatchMarker, nativeEvent, nativeEve
 SyntheticEvent.augmentClass(SyntheticUIEvent, UIEventInterface);
 
 module.exports = SyntheticUIEvent;
-},{"./SyntheticEvent":123,"./getEventTarget":145}],130:[function(require,module,exports){
+},{"./SyntheticEvent":141,"./getEventTarget":163}],148:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -17002,7 +25565,7 @@ function SyntheticWheelEvent(dispatchConfig, dispatchMarker, nativeEvent, native
 SyntheticMouseEvent.augmentClass(SyntheticWheelEvent, WheelEventInterface);
 
 module.exports = SyntheticWheelEvent;
-},{"./SyntheticMouseEvent":127}],131:[function(require,module,exports){
+},{"./SyntheticMouseEvent":145}],149:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -17236,7 +25799,7 @@ var Transaction = {
 
 module.exports = Transaction;
 }).call(this,require('_process'))
-},{"_process":31,"fbjs/lib/invariant":19}],132:[function(require,module,exports){
+},{"_process":49,"fbjs/lib/invariant":25}],150:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -17264,7 +25827,7 @@ var ViewportMetrics = {
 };
 
 module.exports = ViewportMetrics;
-},{}],133:[function(require,module,exports){
+},{}],151:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2014-2015, Facebook, Inc.
@@ -17326,7 +25889,7 @@ function accumulateInto(current, next) {
 
 module.exports = accumulateInto;
 }).call(this,require('_process'))
-},{"_process":31,"fbjs/lib/invariant":19}],134:[function(require,module,exports){
+},{"_process":49,"fbjs/lib/invariant":25}],152:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -17369,7 +25932,7 @@ function adler32(data) {
 }
 
 module.exports = adler32;
-},{}],135:[function(require,module,exports){
+},{}],153:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -17396,7 +25959,7 @@ if (process.env.NODE_ENV !== 'production') {
 
 module.exports = canDefineProperty;
 }).call(this,require('_process'))
-},{"_process":31}],136:[function(require,module,exports){
+},{"_process":49}],154:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -17452,7 +26015,7 @@ function dangerousStyleValue(name, value) {
 }
 
 module.exports = dangerousStyleValue;
-},{"./CSSProperty":34}],137:[function(require,module,exports){
+},{"./CSSProperty":52}],155:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -17503,7 +26066,7 @@ function deprecated(fnName, newModule, newPackage, ctx, fn) {
 
 module.exports = deprecated;
 }).call(this,require('_process'))
-},{"./Object.assign":53,"_process":31,"fbjs/lib/warning":30}],138:[function(require,module,exports){
+},{"./Object.assign":71,"_process":49,"fbjs/lib/warning":36}],156:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -17542,7 +26105,7 @@ function escapeTextContentForBrowser(text) {
 }
 
 module.exports = escapeTextContentForBrowser;
-},{}],139:[function(require,module,exports){
+},{}],157:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -17594,7 +26157,7 @@ function findDOMNode(componentOrElement) {
 
 module.exports = findDOMNode;
 }).call(this,require('_process'))
-},{"./ReactCurrentOwner":65,"./ReactInstanceMap":93,"./ReactMount":96,"_process":31,"fbjs/lib/invariant":19,"fbjs/lib/warning":30}],140:[function(require,module,exports){
+},{"./ReactCurrentOwner":83,"./ReactInstanceMap":111,"./ReactMount":114,"_process":49,"fbjs/lib/invariant":25,"fbjs/lib/warning":36}],158:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -17645,7 +26208,7 @@ function flattenChildren(children) {
 
 module.exports = flattenChildren;
 }).call(this,require('_process'))
-},{"./traverseAllChildren":158,"_process":31,"fbjs/lib/warning":30}],141:[function(require,module,exports){
+},{"./traverseAllChildren":176,"_process":49,"fbjs/lib/warning":36}],159:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -17675,7 +26238,7 @@ var forEachAccumulated = function (arr, cb, scope) {
 };
 
 module.exports = forEachAccumulated;
-},{}],142:[function(require,module,exports){
+},{}],160:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -17726,7 +26289,7 @@ function getEventCharCode(nativeEvent) {
 }
 
 module.exports = getEventCharCode;
-},{}],143:[function(require,module,exports){
+},{}],161:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -17830,7 +26393,7 @@ function getEventKey(nativeEvent) {
 }
 
 module.exports = getEventKey;
-},{"./getEventCharCode":142}],144:[function(require,module,exports){
+},{"./getEventCharCode":160}],162:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -17875,7 +26438,7 @@ function getEventModifierState(nativeEvent) {
 }
 
 module.exports = getEventModifierState;
-},{}],145:[function(require,module,exports){
+},{}],163:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -17905,7 +26468,7 @@ function getEventTarget(nativeEvent) {
 }
 
 module.exports = getEventTarget;
-},{}],146:[function(require,module,exports){
+},{}],164:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -17946,7 +26509,7 @@ function getIteratorFn(maybeIterable) {
 }
 
 module.exports = getIteratorFn;
-},{}],147:[function(require,module,exports){
+},{}],165:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -18020,7 +26583,7 @@ function getNodeForCharacterOffset(root, offset) {
 }
 
 module.exports = getNodeForCharacterOffset;
-},{}],148:[function(require,module,exports){
+},{}],166:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -18054,7 +26617,7 @@ function getTextContentAccessor() {
 }
 
 module.exports = getTextContentAccessor;
-},{"fbjs/lib/ExecutionEnvironment":5}],149:[function(require,module,exports){
+},{"fbjs/lib/ExecutionEnvironment":11}],167:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -18169,7 +26732,7 @@ function instantiateReactComponent(node) {
 
 module.exports = instantiateReactComponent;
 }).call(this,require('_process'))
-},{"./Object.assign":53,"./ReactCompositeComponent":64,"./ReactEmptyComponent":85,"./ReactNativeComponent":99,"_process":31,"fbjs/lib/invariant":19,"fbjs/lib/warning":30}],150:[function(require,module,exports){
+},{"./Object.assign":71,"./ReactCompositeComponent":82,"./ReactEmptyComponent":103,"./ReactNativeComponent":117,"_process":49,"fbjs/lib/invariant":25,"fbjs/lib/warning":36}],168:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -18230,7 +26793,7 @@ function isEventSupported(eventNameSuffix, capture) {
 }
 
 module.exports = isEventSupported;
-},{"fbjs/lib/ExecutionEnvironment":5}],151:[function(require,module,exports){
+},{"fbjs/lib/ExecutionEnvironment":11}],169:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -18271,7 +26834,7 @@ function isTextInputElement(elem) {
 }
 
 module.exports = isTextInputElement;
-},{}],152:[function(require,module,exports){
+},{}],170:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -18307,7 +26870,7 @@ function onlyChild(children) {
 
 module.exports = onlyChild;
 }).call(this,require('_process'))
-},{"./ReactElement":83,"_process":31,"fbjs/lib/invariant":19}],153:[function(require,module,exports){
+},{"./ReactElement":101,"_process":49,"fbjs/lib/invariant":25}],171:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -18334,7 +26897,7 @@ function quoteAttributeValueForBrowser(value) {
 }
 
 module.exports = quoteAttributeValueForBrowser;
-},{"./escapeTextContentForBrowser":138}],154:[function(require,module,exports){
+},{"./escapeTextContentForBrowser":156}],172:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -18351,7 +26914,7 @@ module.exports = quoteAttributeValueForBrowser;
 var ReactMount = require('./ReactMount');
 
 module.exports = ReactMount.renderSubtreeIntoContainer;
-},{"./ReactMount":96}],155:[function(require,module,exports){
+},{"./ReactMount":114}],173:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -18442,7 +27005,7 @@ if (ExecutionEnvironment.canUseDOM) {
 }
 
 module.exports = setInnerHTML;
-},{"fbjs/lib/ExecutionEnvironment":5}],156:[function(require,module,exports){
+},{"fbjs/lib/ExecutionEnvironment":11}],174:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -18483,7 +27046,7 @@ if (ExecutionEnvironment.canUseDOM) {
 }
 
 module.exports = setTextContent;
-},{"./escapeTextContentForBrowser":138,"./setInnerHTML":155,"fbjs/lib/ExecutionEnvironment":5}],157:[function(require,module,exports){
+},{"./escapeTextContentForBrowser":156,"./setInnerHTML":173,"fbjs/lib/ExecutionEnvironment":11}],175:[function(require,module,exports){
 /**
  * Copyright 2013-2015, Facebook, Inc.
  * All rights reserved.
@@ -18527,7 +27090,7 @@ function shouldUpdateReactComponent(prevElement, nextElement) {
 }
 
 module.exports = shouldUpdateReactComponent;
-},{}],158:[function(require,module,exports){
+},{}],176:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2013-2015, Facebook, Inc.
@@ -18719,7 +27282,7 @@ function traverseAllChildren(children, callback, traverseContext) {
 
 module.exports = traverseAllChildren;
 }).call(this,require('_process'))
-},{"./ReactCurrentOwner":65,"./ReactElement":83,"./ReactInstanceHandles":92,"./getIteratorFn":146,"_process":31,"fbjs/lib/invariant":19,"fbjs/lib/warning":30}],159:[function(require,module,exports){
+},{"./ReactCurrentOwner":83,"./ReactElement":101,"./ReactInstanceHandles":110,"./getIteratorFn":164,"_process":49,"fbjs/lib/invariant":25,"fbjs/lib/warning":36}],177:[function(require,module,exports){
 (function (process){
 /**
  * Copyright 2015, Facebook, Inc.
@@ -19085,9 +27648,3353 @@ if (process.env.NODE_ENV !== 'production') {
 
 module.exports = validateDOMNesting;
 }).call(this,require('_process'))
-},{"./Object.assign":53,"_process":31,"fbjs/lib/emptyFunction":11,"fbjs/lib/warning":30}],160:[function(require,module,exports){
+},{"./Object.assign":71,"_process":49,"fbjs/lib/emptyFunction":17,"fbjs/lib/warning":36}],178:[function(require,module,exports){
 'use strict';
 
 module.exports = require('./lib/React');
 
-},{"./lib/React":55}]},{},[3]);
+},{"./lib/React":73}],179:[function(require,module,exports){
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements. See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership. The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+var POW_8 = Math.pow(2, 8)
+var POW_16 = Math.pow(2, 16)
+var POW_24 = Math.pow(2, 24)
+var POW_32 = Math.pow(2, 32)
+var POW_40 = Math.pow(2, 40)
+var POW_48 = Math.pow(2, 48)
+var POW_52 = Math.pow(2, 52)
+var POW_1022 = Math.pow(2, 1022)
+
+exports.readByte = function(byte){
+	return byte > 127 ? byte-256 : byte;
+}
+
+exports.readI16 = function(buff, off) {
+  off = off || 0;
+  var v = buff[off + 1];
+  v += buff[off] << 8;
+  if (buff[off] & 128) {
+    v -= POW_16;
+  }
+  return v;
+}
+
+exports.readI32 = function(buff, off) {
+  off = off || 0;
+  var v = buff[off + 3];
+  v += buff[off + 2] << 8;
+  v += buff[off + 1] << 16;
+  v += buff[off] * POW_24;
+  if (buff[off] & 0x80) {
+    v -= POW_32;
+  }
+  return v;
+}
+
+exports.writeI16 = function(buff, v) {
+  buff[1] = v & 0xff;
+  v >>= 8;
+  buff[0] = v & 0xff;
+  return buff;
+}
+
+exports.writeI32 = function(buff, v) {
+  buff[3] = v & 0xff;
+  v >>= 8;
+  buff[2] = v & 0xff;
+  v >>= 8;
+  buff[1] = v & 0xff;
+  v >>= 8;
+  buff[0] = v & 0xff;
+  return buff;
+}
+
+exports.readDouble = function(buff, off) {
+  off = off || 0;
+  var signed = buff[off] & 0x80;
+  var e = (buff[off+1] & 0xF0) >> 4;
+  e += (buff[off] & 0x7F) << 4;
+
+  var m = buff[off+7];
+  m += buff[off+6] << 8;
+  m += buff[off+5] << 16;
+  m += buff[off+4] * POW_24;
+  m += buff[off+3] * POW_32;
+  m += buff[off+2] * POW_40;
+  m += (buff[off+1] & 0x0F) * POW_48;
+
+  switch (e) {
+    case 0:
+      e = -1022
+      break;
+    case 2047:
+      return m ? NaN : (signed ? -Infinity : Infinity);
+    default:
+      m += POW_52;
+      e -= 1023;
+  }
+
+  if (signed) {
+    m *= -1;
+  }
+
+  return m * Math.pow(2, e - 52);
+}
+
+/*
+ * Based on code from the jspack module:
+ * http://code.google.com/p/jspack/
+ */
+exports.writeDouble = function(buff, v) {
+  var m, e, c;
+
+  buff[0] = (v < 0 ? 0x80 : 0x00)
+
+  v = Math.abs(v)
+  if (v !== v) {
+    // NaN, use QNaN IEEE format
+    m = 2251799813685248;
+    e = 2047;
+  } else if (v === Infinity) {
+    m = 0;
+    e = 2047;
+  } else {
+    e = Math.floor(Math.log(v) / Math.LN2)
+    c = Math.pow(2, -e)
+    if (v * c < 1) {
+      e--;
+      c *= 2;
+    }
+
+    if (e + 1023 >= 2047)
+    {
+      // Overflow
+      m = 0;
+      e = 2047;
+    }
+    else if (e + 1023 >= 1)
+    {
+      // Normalized - term order matters, as Math.pow(2, 52-e) and v*Math.pow(2, 52) can overflow
+      m = (v*c-1) * POW_52;
+      e += 1023;
+    }
+    else
+    {
+      // Denormalized - also catches the '0' case, somewhat by chance
+      m = (v * POW_1022) * POW_52;
+      e = 0;
+    }
+  }
+
+  buff[1] = (e << 4) & 0xf0;
+  buff[0] |= (e >> 4) & 0x7f;
+
+  buff[7] = m & 0xff;
+  m = Math.floor(m / POW_8);
+  buff[6] = m & 0xff;
+  m = Math.floor(m / POW_8);
+  buff[5] = m & 0xff;
+  m = Math.floor(m / POW_8);
+  buff[4] = m & 0xff;
+  m >>= 8;
+  buff[3] = m & 0xff;
+  m >>= 8;
+  buff[2] = m & 0xff;
+  m >>= 8;
+  buff[1] |= m & 0x0f;
+
+  return buff;
+}
+
+},{}],180:[function(require,module,exports){
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements. See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership. The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+var util = require('util'),
+    EventEmitter = require("events").EventEmitter,
+    net = require('net'),
+    ttransport = require('./transport'),
+    tprotocol = require('./protocol');
+
+var binary = require('./binary');
+
+var Connection = exports.Connection = function(stream, options) {
+  var self = this;
+  EventEmitter.call(this);
+
+  this.connection = stream;
+  this.options = options || {};
+  this.transport = this.options.transport || ttransport.TBufferedTransport;
+  this.protocol = this.options.protocol || tprotocol.TBinaryProtocol;
+  this.offline_queue = [];
+  this.connected = false;
+
+  this.connection.addListener("connect", function() {
+    self.connected = true;
+
+    this.setTimeout(self.options.timeout || 0);
+    this.setNoDelay();
+    this.frameLeft = 0;
+    this.framePos = 0;
+    this.frame = null;
+
+    self.offline_queue.forEach(function(data) {
+      self.connection.write(data);
+    });
+
+    self.emit("connect");
+  });
+
+  this.connection.addListener("error", function(err) {
+    // Only emit the error if no-one else is listening on the connection
+    // or if someone is listening on us
+    if (self.connection.listeners('error').length === 1
+        || self.listeners('error').length > 0) {
+      self.emit("error", err)
+    }
+  });
+
+  // Add a close listener
+  this.connection.addListener("close", function() {
+    self.emit("close");
+  });
+
+  this.connection.addListener("timeout", function() {
+    self.emit("timeout");
+  });
+
+  this.connection.addListener("data", self.transport.receiver(function(transport_with_data) {
+    var message = new self.protocol(transport_with_data);
+    try {
+      var header = message.readMessageBegin();
+      var dummy_seqid = header.rseqid * -1;
+      var client = self.client;
+      client._reqs[dummy_seqid] = function(err, success){
+        transport_with_data.commitPosition();
+
+        var callback = client._reqs[header.rseqid];
+        delete client._reqs[header.rseqid];
+        if (callback) {
+          callback(err, success);
+        }
+      };
+      client['recv_' + header.fname](message, header.mtype, dummy_seqid);
+    }
+    catch (e) {
+      if (e instanceof ttransport.InputBufferUnderrunError) {
+        transport_with_data.rollbackPosition();
+      }
+      else {
+        throw e;
+      }
+    }
+  }));
+};
+util.inherits(Connection, EventEmitter);
+
+Connection.prototype.end = function() {
+  this.connection.end();
+}
+
+Connection.prototype.write = function(data) {
+  if (!this.connected) {
+    this.offline_queue.push(data);
+    return;
+  }
+  this.connection.write(data);
+}
+
+exports.createConnection = function(host, port, options) {
+  var stream = net.createConnection(port, host);
+  var connection = new Connection(stream, options);
+  connection.host = host;
+  connection.port = port;
+
+  return connection;
+}
+
+exports.createClient = function(cls, connection) {
+  if (cls.Client) {
+    cls = cls.Client;
+  }
+  var client = new cls(new connection.transport(undefined, function(buf) {
+    connection.write(buf);
+  }), connection.protocol);
+
+  // TODO clean this up
+  connection.client = client;
+
+  return client;
+}
+
+var child_process = require('child_process');
+var StdIOConnection = exports.StdIOConnection = function(command, options) {
+  var command_parts = command.split(' ');
+  command = command_parts[0];
+  var args = command_parts.splice(1,command_parts.length -1);
+  var child = this.child = child_process.spawn(command,args);
+
+  var self = this;
+  EventEmitter.call(this);
+
+  this._debug = options.debug || false;
+  this.connection = child.stdin;
+  this.options = options || {};
+  this.transport = this.options.transport || ttransport.TBufferedTransport;
+  this.protocol = this.options.protocol || tprotocol.TBinaryProtocol;
+  this.offline_queue = [];
+
+  if(this._debug === true){
+    this.child.stderr.on('data',function(err){
+      console.log(err.toString(),'CHILD ERROR');
+    });
+
+    this.child.on('exit',function(code,signal){
+      console.log(code+':'+signal,'CHILD EXITED');
+    });
+  }
+
+  this.frameLeft = 0;
+  this.framePos = 0;
+  this.frame = null;
+  this.connected = true;
+
+  self.offline_queue.forEach(function(data) {
+      self.connection.write(data);
+  });
+
+
+  this.connection.addListener("error", function(err) {
+    self.emit("error", err);
+  });
+
+  // Add a close listener
+  this.connection.addListener("close", function() {
+    self.emit("close");
+  });
+
+  child.stdout.addListener("data", self.transport.receiver(function(transport_with_data) {
+    var message = new self.protocol(transport_with_data);
+    try {
+      var header = message.readMessageBegin();
+      var dummy_seqid = header.rseqid * -1;
+      var client = self.client;
+      client._reqs[dummy_seqid] = function(err, success){
+        transport_with_data.commitPosition();
+
+        var callback = client._reqs[header.rseqid];
+        delete client._reqs[header.rseqid];
+        if (callback) {
+          callback(err, success);
+        }
+      };
+      client['recv_' + header.fname](message, header.mtype, dummy_seqid);
+    }
+    catch (e) {
+      if (e instanceof ttransport.InputBufferUnderrunError) {
+        transport_with_data.rollbackPosition();
+      }
+      else {
+        throw e;
+      }
+    }
+  }));
+
+};
+
+util.inherits(StdIOConnection, EventEmitter);     
+
+StdIOConnection.prototype.end = function() {
+  this.connection.end();
+}
+
+StdIOConnection.prototype.write = function(data) {
+  if (!this.connected) {
+    this.offline_queue.push(data);
+    return;
+  }
+  this.connection.write(data);
+}
+exports.createStdIOConnection = function(command,options){
+  return new StdIOConnection(command,options);
+
+};
+
+exports.createStdIOClient = function(cls,connection) {
+  if (cls.Client) {
+    cls = cls.Client;
+  }
+
+  var client = new cls(new connection.transport(undefined, function(buf) {
+    connection.write(buf);
+  }), connection.protocol);
+
+  // TODO clean this up
+  connection.client = client;
+
+  return client;
+}
+
+},{"./binary":179,"./protocol":182,"./transport":185,"child_process":6,"events":9,"net":6,"util":188}],181:[function(require,module,exports){
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements. See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership. The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+exports.Thrift = require('./thrift');
+
+var connection = require('./connection');
+exports.Connection = connection.Connection;
+exports.createClient = connection.createClient;
+exports.createConnection = connection.createConnection;
+exports.createStdIOClient = connection.createStdIOClient;
+exports.createStdIOConnection = connection.createStdIOConnection;
+
+exports.createServer = require('./server').createServer;
+
+exports.Int64 = require('node-int64')
+
+/*
+ * Export transport and protocol so they can be used outside of a 
+ * cassandra/server context
+ */
+exports.TFramedTransport = require('./transport').TFramedTransport;
+exports.TBufferedTransport = require('./transport').TBufferedTransport;
+exports.TBinaryProtocol = require('./protocol').TBinaryProtocol;
+
+},{"./connection":180,"./protocol":182,"./server":183,"./thrift":184,"./transport":185,"node-int64":39}],182:[function(require,module,exports){
+(function (Buffer){
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements. See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership. The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+var util = require('util'),
+    Thrift = require('./thrift'),
+    Type = Thrift.Type;
+
+var binary = require('./binary'),
+    Int64 = require('node-int64');
+
+var UNKNOWN = 0,
+    INVALID_DATA = 1,
+    NEGATIVE_SIZE = 2,
+    SIZE_LIMIT = 3,
+    BAD_VERSION = 4;
+
+var TProtocolException = function(type, message) {
+  Error.call(this, message);
+  this.name = 'TProtocolException';
+  this.type = type;
+}
+util.inherits(TProtocolException, Error);
+
+var TBinaryProtocol = exports.TBinaryProtocol = function(trans, strictRead, strictWrite) {
+  this.trans = trans;
+  this.strictRead = (strictRead !== undefined ? strictRead : false);
+  this.strictWrite = (strictWrite !== undefined ? strictWrite : true);
+}
+
+TBinaryProtocol.prototype.flush = function() {
+  return this.trans.flush();
+}
+
+// NastyHaxx. JavaScript forces hex constants to be
+// positive, converting this into a long. If we hardcode the int value
+// instead it'll stay in 32 bit-land.
+
+var VERSION_MASK = -65536, // 0xffff0000
+    VERSION_1 = -2147418112, // 0x80010000
+    TYPE_MASK = 0x000000ff;
+
+TBinaryProtocol.prototype.writeMessageBegin = function(name, type, seqid) {
+    if (this.strictWrite) {
+      this.writeI32(VERSION_1 | type);
+      this.writeString(name);
+      this.writeI32(seqid);
+    } else {
+      this.writeString(name);
+      this.writeByte(type);
+      this.writeI32(seqid);
+    }
+}
+
+TBinaryProtocol.prototype.writeMessageEnd = function() {
+}
+
+TBinaryProtocol.prototype.writeStructBegin = function(name) {
+}
+
+TBinaryProtocol.prototype.writeStructEnd = function() {
+}
+
+TBinaryProtocol.prototype.writeFieldBegin = function(name, type, id) {
+  this.writeByte(type);
+  this.writeI16(id);
+}
+
+TBinaryProtocol.prototype.writeFieldEnd = function() {
+}
+
+TBinaryProtocol.prototype.writeFieldStop = function() {
+  this.writeByte(Type.STOP);
+}
+
+TBinaryProtocol.prototype.writeMapBegin = function(ktype, vtype, size) {
+  this.writeByte(ktype);
+  this.writeByte(vtype);
+  this.writeI32(size);
+}
+
+TBinaryProtocol.prototype.writeMapEnd = function() {
+}
+
+TBinaryProtocol.prototype.writeListBegin = function(etype, size) {
+  this.writeByte(etype);
+  this.writeI32(size);
+}
+
+TBinaryProtocol.prototype.writeListEnd = function() {
+}
+
+TBinaryProtocol.prototype.writeSetBegin = function(etype, size) {
+  console.log('write set', etype, size);
+  this.writeByte(etype);
+  this.writeI32(size);
+}
+
+TBinaryProtocol.prototype.writeSetEnd = function() {
+}
+
+TBinaryProtocol.prototype.writeBool = function(bool) {
+  if (bool) {
+    this.writeByte(1);
+  } else {
+    this.writeByte(0);
+  }
+}
+
+TBinaryProtocol.prototype.writeByte = function(byte) {
+  this.trans.write(new Buffer([byte]));
+}
+
+TBinaryProtocol.prototype.writeI16 = function(i16) {
+  this.trans.write(binary.writeI16(new Buffer(2), i16));
+}
+
+TBinaryProtocol.prototype.writeI32 = function(i32) {
+  this.trans.write(binary.writeI32(new Buffer(4), i32));
+}
+
+TBinaryProtocol.prototype.writeI64 = function(i64) {
+  if (i64.buffer) {
+    this.trans.write(i64.buffer);
+  } else {
+    this.trans.write(new Int64(i64).buffer)
+  }
+}
+
+TBinaryProtocol.prototype.writeDouble = function(dub) {
+  this.trans.write(binary.writeDouble(new Buffer(8), dub));
+}
+
+TBinaryProtocol.prototype.writeString = function(arg) {
+  if (typeof(arg) === 'string') {
+    this.writeI32(Buffer.byteLength(arg, 'utf8'))
+    this.trans.write(arg, 'utf8');
+  } else if (arg instanceof Buffer) {
+    this.writeI32(arg.length)
+    this.trans.write(arg);
+  } else {
+    throw new Error('writeString called without a string/Buffer argument: ' + arg)
+  }
+}
+
+TBinaryProtocol.prototype.writeBinary = function(arg) {
+  if (typeof(arg) === 'string') {
+    this.writeI32(Buffer.byteLength(arg, 'utf8'))
+    this.trans.write(arg, 'utf8');
+  } else if (arg instanceof Buffer) {
+    this.writeI32(arg.length)
+    this.trans.write(arg);
+  } else {
+    throw new Error('writeBinary called without a string/Buffer argument: ' + arg)
+  }
+}
+
+TBinaryProtocol.prototype.readMessageBegin = function() {
+  var sz = this.readI32();
+  var type, name, seqid;
+
+  if (sz < 0) {
+    var version = sz & VERSION_MASK;
+    if (version != VERSION_1) {
+      console.log("BAD: " + version);
+      throw TProtocolException(BAD_VERSION, "Bad version in readMessageBegin: " + sz);
+    }
+    type = sz & TYPE_MASK;
+    name = this.readString();
+    seqid = this.readI32();
+  } else {
+    if (this.strictRead) {
+      throw TProtocolException(BAD_VERSION, "No protocol version header");
+    }
+    name = this.trans.read(sz);
+    type = this.readByte();
+    seqid = this.readI32();
+  }
+  return {fname: name, mtype: type, rseqid: seqid};
+}
+
+TBinaryProtocol.prototype.readMessageEnd = function() {
+}
+
+TBinaryProtocol.prototype.readStructBegin = function() {
+  return {fname: ''}
+}
+
+TBinaryProtocol.prototype.readStructEnd = function() {
+}
+
+TBinaryProtocol.prototype.readFieldBegin = function() {
+  var type = this.readByte();
+  if (type == Type.STOP) {
+    return {fname: null, ftype: type, fid: 0};
+  }
+  var id = this.readI16();
+  return {fname: null, ftype: type, fid: id};
+}
+
+TBinaryProtocol.prototype.readFieldEnd = function() {
+}
+
+TBinaryProtocol.prototype.readMapBegin = function() {
+  var ktype = this.readByte();
+  var vtype = this.readByte();
+  var size = this.readI32();
+  return {ktype: ktype, vtype: vtype, size: size};
+}
+
+TBinaryProtocol.prototype.readMapEnd = function() {
+}
+
+TBinaryProtocol.prototype.readListBegin = function() {
+  var etype = this.readByte();
+  var size = this.readI32();
+  return {etype: etype, size: size};
+}
+
+TBinaryProtocol.prototype.readListEnd = function() {
+}
+
+TBinaryProtocol.prototype.readSetBegin = function() {
+  var etype = this.readByte();
+  var size = this.readI32();
+  return {etype: etype, size: size};
+}
+
+TBinaryProtocol.prototype.readSetEnd = function() {
+}
+
+TBinaryProtocol.prototype.readBool = function() {
+  var byte = this.readByte();
+  if (byte == 0) {
+    return false;
+  }
+  return true;
+}
+
+TBinaryProtocol.prototype.readByte = function() {
+  return this.trans.readByte();
+}
+
+TBinaryProtocol.prototype.readI16 = function() {
+  return this.trans.readI16();
+}
+
+TBinaryProtocol.prototype.readI32 = function() {
+  return this.trans.readI32();
+}
+
+TBinaryProtocol.prototype.readI64 = function() {
+  var buff = this.trans.read(8);
+  return new Int64(buff);
+}
+
+TBinaryProtocol.prototype.readDouble = function() {
+  return this.trans.readDouble();
+}
+
+TBinaryProtocol.prototype.readBinary = function() {
+  var len = this.readI32();
+  return this.trans.read(len);
+}
+
+TBinaryProtocol.prototype.readString = function() {
+  var len = this.readI32();
+  return this.trans.readString(len);
+}
+
+TBinaryProtocol.prototype.getTransport = function() {
+  return this.trans;
+}
+
+TBinaryProtocol.prototype.skip = function(type) {
+  // console.log("skip: " + type);
+  switch (type) {
+    case Type.STOP:
+      return;
+    case Type.BOOL:
+      this.readBool();
+      break;
+    case Type.BYTE:
+      this.readByte();
+      break;
+    case Type.I16:
+      this.readI16();
+      break;
+    case Type.I32:
+      this.readI32();
+      break;
+    case Type.I64:
+      this.readI64();
+      break;
+    case Type.DOUBLE:
+      this.readDouble();
+      break;
+    case Type.STRING:
+      this.readString();
+      break;
+    case Type.STRUCT:
+      this.readStructBegin();
+      while (true) {
+        var r = this.readFieldBegin();
+        if (r.ftype === Type.STOP) {
+          break;
+        }
+        this.skip(r.ftype);
+        this.readFieldEnd();
+      }
+      this.readStructEnd();
+      break;
+    case Type.MAP:
+      var r = this.readMapBegin();
+      for (var i = 0; i < r.size; ++i) {
+        this.skip(r.ktype);
+        this.skip(r.vtype);
+      }
+      this.readMapEnd();
+      break;
+    case Type.SET:
+      var r = this.readSetBegin();
+      for (var i = 0; i < r.size; ++i) {
+        this.skip(r.etype);
+      }
+      this.readSetEnd();
+      break;
+    case Type.LIST:
+      var r = this.readListBegin();
+      for (var i = 0; i < r.size; ++i) {
+        this.skip(r.etype);
+      }
+      this.readListEnd();
+      break;
+    default:
+      throw Error("Invalid type: " + type);
+  }
+}
+
+}).call(this,require("buffer").Buffer)
+},{"./binary":179,"./thrift":184,"buffer":7,"node-int64":39,"util":188}],183:[function(require,module,exports){
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements. See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership. The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+var net = require('net');
+
+var ttransport = require('./transport')
+  , TBinaryProtocol = require('./protocol').TBinaryProtocol;
+
+exports.createServer = function(cls, handler, options) {
+  if (cls.Processor) {
+    cls = cls.Processor;
+  }
+  var processor = new cls(handler);
+  var transport = (options && options.transport) ? options.transport : ttransport.TBufferedTransport;
+  var protocol = (options && options.protocol) ? options.protocol : TBinaryProtocol;
+
+  return net.createServer(function(stream) {
+    var self = this;
+    stream.on('data', transport.receiver(function(transportWithData) {
+      var input = new protocol(transportWithData);
+      var output = new protocol(new transport(undefined, function(buf) {
+        try {
+            stream.write(buf);
+        } catch (err) {
+            self.emit('error', err);
+            stream.end();
+        }
+      }));
+
+      try {
+        processor.process(input, output);
+        transportWithData.commitPosition();
+      }
+      catch (err) {
+        if (err instanceof ttransport.InputBufferUnderrunError) {
+          transportWithData.rollbackPosition();
+        }
+        else {
+          self.emit('error', err);
+          stream.end();
+        }
+      }
+    }));
+
+    stream.on('end', function() {
+      stream.end();
+    });
+  });
+};
+
+},{"./protocol":182,"./transport":185,"net":6}],184:[function(require,module,exports){
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements. See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership. The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+var util = require('util');
+
+var Type = exports.Type = {
+  STOP: 0,
+  VOID: 1,
+  BOOL: 2,
+  BYTE: 3,
+  I08: 3,
+  DOUBLE: 4,
+  I16: 6,
+  I32: 8,
+  I64: 10,
+  STRING: 11,
+  UTF7: 11,
+  STRUCT: 12,
+  MAP: 13,
+  SET: 14,
+  LIST: 15,
+  UTF8: 16,
+  UTF16: 17,
+}
+
+exports.MessageType = {
+  CALL: 1,
+  REPLY: 2,
+  EXCEPTION: 3,
+  ONEWAY: 4,
+}
+
+var TException = exports.TException = function(message) {
+  Error.call(this, message);
+  this.name = 'TException';
+}
+util.inherits(TException, Error);
+
+var TApplicationExceptionType = exports.TApplicationExceptionType = {
+  UNKNOWN: 0,
+  UNKNOWN_METHOD: 1,
+  INVALID_MESSAGE_TYPE: 2,
+  WRONG_METHOD_NAME: 3,
+  BAD_SEQUENCE_ID: 4,
+  MISSING_RESULT: 5,
+  INTERNAL_ERROR: 6,
+  PROTOCOL_ERROR: 7,
+  INVALID_TRANSFORM: 8,
+  INVALID_PROTOCOL: 9,
+  UNSUPPORTED_CLIENT_TYPE: 10
+}
+
+var TApplicationException = exports.TApplicationException = function(type, message) {
+  TException.call(this, message);
+  this.type = type || TApplicationExceptionType.UNKNOWN;
+  this.name = 'TApplicationException';
+}
+util.inherits(TApplicationException, TException);
+
+TApplicationException.prototype.read = function(input) {
+  var ftype
+  var fid
+  var ret = input.readStructBegin('TApplicationException')
+
+  while(1){
+
+      ret = input.readFieldBegin()
+
+      if(ret.ftype == Type.STOP)
+          break
+
+      var fid = ret.fid
+
+      switch(fid){
+          case 1:
+              if( ret.ftype == Type.STRING ){
+                  ret = input.readString()
+                  this.message = ret
+              } else {
+                  ret = input.skip(ret.ftype)
+              }
+
+              break
+          case 2:
+              if( ret.ftype == Type.I32 ){
+                  ret = input.readI32()
+                  this.type = ret
+              } else {
+                  ret   = input.skip(ret.ftype)
+              }
+              break
+
+          default:
+              ret = input.skip(ret.ftype)
+              break
+      }
+      input.readFieldEnd()
+  }
+
+  input.readStructEnd()
+}
+
+TApplicationException.prototype.write = function(output){
+  output.writeStructBegin('TApplicationException');
+
+  if (this.message) {
+      output.writeFieldBegin('message', Type.STRING, 1)
+      output.writeString(this.message)
+      output.writeFieldEnd()
+  }
+
+  if (this.code) {
+      output.writeFieldBegin('type', Type.I32, 2)
+      output.writeI32(this.code)
+      output.writeFieldEnd()
+  }
+
+  output.writeFieldStop()
+  output.writeStructEnd()
+}
+
+exports.objectLength = function(obj) {
+  return Object.keys(obj).length;
+}
+
+exports.inherits = function(constructor, superConstructor) {
+  util.inherits(constructor, superConstructor);
+}
+
+},{"util":188}],185:[function(require,module,exports){
+(function (Buffer){
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements. See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership. The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+var emptyBuf = new Buffer(0);
+
+var binary = require('./binary');
+
+var InputBufferUnderrunError = exports.InputBufferUnderrunError = function() {
+};
+
+var TFramedTransport = exports.TFramedTransport = function(buffer, callback) {
+  this.inBuf = buffer || emptyBuf;
+  this.outBuffers = [];
+  this.outCount = 0;
+  this.readPos = 0;
+  this.onFlush = callback;
+};
+TFramedTransport.receiver = function(callback) {
+  var frameLeft = 0,
+      framePos = 0,
+      frame = null;
+  var residual = null;
+
+  return function(data) {
+    // Prepend any residual data from our previous read
+    if (residual) {
+      var dat = new Buffer(data.length + residual.length);
+      residual.copy(dat, 0, 0);
+      data.copy(dat, residual.length, 0);
+      residual = null;
+    }
+
+    // framed transport
+    while (data.length) {
+      if (frameLeft === 0) {
+        // TODO assumes we have all 4 bytes
+        if (data.length < 4) {
+          console.log("Expecting > 4 bytes, found only " + data.length);
+          residual = data;
+          break;
+          //throw Error("Expecting > 4 bytes, found only " + data.length);
+        }
+        frameLeft = binary.readI32(data, 0);
+        frame = new Buffer(frameLeft);
+        framePos = 0;
+        data = data.slice(4, data.length);
+      }
+      
+      if (data.length >= frameLeft) {
+        data.copy(frame, framePos, 0, frameLeft);
+        data = data.slice(frameLeft, data.length);
+        
+        frameLeft = 0;
+        callback(new TFramedTransport(frame));
+      } else if (data.length) {
+        data.copy(frame, framePos, 0, data.length);
+        frameLeft -= data.length;
+        framePos += data.length;
+        data = data.slice(data.length, data.length);
+      }
+    }
+  };
+};
+
+TFramedTransport.prototype = {
+  commitPosition: function(){},
+  rollbackPosition: function(){},
+
+  // TODO: Implement open/close support
+  isOpen: function() {return true;},
+  open: function() {},
+  close: function() {},
+
+  read: function(len) { // this function will be used for each frames.
+    var end = this.readPos + len;
+
+    if (this.inBuf.length < end) {
+      throw new Error('read(' + len + ') failed - not enough data');
+    }
+
+    var buf = this.inBuf.slice(this.readPos, end);
+    this.readPos = end;
+    return buf;
+  },
+
+  readByte: function() {
+    return binary.readByte(this.inBuf[this.readPos++]);
+  },
+
+  readI16: function() {
+    var i16 = binary.readI16(this.inBuf, this.readPos);
+    this.readPos += 2;
+    return i16;
+  },
+
+  readI32: function() {
+    var i32 = binary.readI32(this.inBuf, this.readPos);
+    this.readPos += 4;
+    return i32;
+  },
+
+  readDouble: function() {
+    var d = binary.readDouble(this.inBuf, this.readPos);
+    this.readPos += 8;
+    return d;
+  },
+
+  readString: function(len) {
+    var str = this.inBuf.toString('utf8', this.readPos, this.readPos + len);
+    this.readPos += len;
+    return str;
+  },
+
+  readAll: function() {
+    return this.inBuf;
+  },
+
+  write: function(buf, encoding) {
+    if (typeof(buf) === "string") {
+      buf = new Buffer(buf, encoding || 'utf8');
+    }
+    this.outBuffers.push(buf);
+    this.outCount += buf.length;
+  },
+
+  flush: function() {
+    var out = new Buffer(this.outCount),
+        pos = 0;
+    this.outBuffers.forEach(function(buf) {
+      buf.copy(out, pos, 0);
+      pos += buf.length;
+    });
+    
+    if (this.onFlush) {
+      // TODO: optimize this better, allocate one buffer instead of both:
+      var msg = new Buffer(out.length + 4);
+      binary.writeI32(msg, out.length)
+      frameLeft = binary.readI32(this.inBuf, 0);
+      out.copy(msg, 4, 0, out.length);
+      this.onFlush(msg);
+    }
+
+    this.outBuffers = [];
+    this.outCount = 0;
+  }
+};
+
+var TBufferedTransport = exports.TBufferedTransport = function(buffer, callback) {
+  this.defaultReadBufferSize = 1024;
+  this.writeBufferSize = 512; // Soft Limit
+  this.inBuf = new Buffer(this.defaultReadBufferSize);
+  this.readCursor = 0;
+  this.writeCursor = 0; // for input buffer
+  this.outBuffers = [];
+  this.outCount = 0;
+  this.onFlush = callback;
+};
+TBufferedTransport.receiver = function(callback) {
+  var reader = new TBufferedTransport();
+
+  return function(data) {
+    if (reader.writeCursor + data.length > reader.inBuf.length) {
+      var buf = new Buffer(reader.writeCursor + data.length);
+      reader.inBuf.copy(buf, 0, 0, reader.writeCursor);
+      reader.inBuf = buf;
+    }
+    data.copy(reader.inBuf, reader.writeCursor, 0);
+    reader.writeCursor += data.length;
+
+    callback(reader);
+  };
+};
+
+TBufferedTransport.prototype = {
+  commitPosition: function(){
+    var unreadedSize = this.writeCursor - this.readCursor;
+    var bufSize = (unreadedSize * 2 > this.defaultReadBufferSize) ? unreadedSize * 2 : this.defaultReadBufferSize;
+    var buf = new Buffer(bufSize);
+    if (unreadedSize > 0) {
+      this.inBuf.copy(buf, 0, this.readCursor, this.writeCursor);
+    }
+    this.readCursor = 0;
+    this.writeCursor = unreadedSize;
+    this.inBuf = buf;
+  },
+  rollbackPosition: function(){
+    this.readCursor = 0;
+  },
+
+  // TODO: Implement open/close support
+  isOpen: function() {return true;},
+  open: function() {},
+  close: function() {},
+
+  ensureAvailable: function(len) {
+    if (this.readCursor + len > this.writeCursor) {
+      throw new InputBufferUnderrunError();
+    }
+  },
+
+  read: function(len) {
+    this.ensureAvailable(len)
+    var buf = new Buffer(len);
+    this.inBuf.copy(buf, 0, this.readCursor, this.readCursor + len);
+    this.readCursor += len;
+    return buf;
+  },
+
+  readByte: function() {
+    this.ensureAvailable(1)
+    return binary.readByte(this.inBuf[this.readCursor++]);
+  },
+
+  readI16: function() {
+    this.ensureAvailable(2)
+    var i16 = binary.readI16(this.inBuf, this.readCursor);
+    this.readCursor += 2;
+    return i16;
+  },
+
+  readI32: function() {
+    this.ensureAvailable(4)
+    var i32 = binary.readI32(this.inBuf, this.readCursor);
+    this.readCursor += 4;
+    return i32;
+  },
+
+  readDouble: function() {
+    this.ensureAvailable(8)
+    var d = binary.readDouble(this.inBuf, this.readCursor);
+    this.readCursor += 8;
+    return d;
+  },
+
+  readString: function(len) {
+    this.ensureAvailable(len)
+    var str = this.inBuf.toString('utf8', this.readCursor, this.readCursor + len);
+    this.readCursor += len;
+    return str;
+  },
+
+
+  readAll: function() {
+    if (this.readCursor >= this.writeCursor) {
+      throw new InputBufferUnderrunError();
+    }
+    var buf = new Buffer(this.writeCursor - this.readCursor);
+    this.inBuf.copy(buf, 0, this.readCursor, this.writeCursor);
+    this.readCursor = this.writeCursor;
+    return buf;
+  },
+
+  write: function(buf, encoding) {
+    if (typeof(buf) === "string") {
+      // Defaulting to ascii encoding here since that's more like the original
+      // code, but I feel like 'utf8' would be a better choice.
+      buf = new Buffer(buf, encoding || 'ascii');
+    }
+    if (this.outCount + buf.length > this.writeBufferSize) {
+      this.flush();
+    }
+
+    this.outBuffers.push(buf);
+    this.outCount += buf.length;
+
+    if (this.outCount >= this.writeBufferSize) {
+      this.flush();
+    }
+  },
+
+  flush: function() {
+    if (this.outCount < 1) {
+      return;
+    }
+    
+    var msg = new Buffer(this.outCount),
+        pos = 0;
+    this.outBuffers.forEach(function(buf) {
+      buf.copy(msg, pos, 0);
+      pos += buf.length;
+    });
+    
+    if (this.onFlush) {
+      this.onFlush(msg);
+    }
+
+    this.outBuffers = [];
+    this.outCount = 0;
+  }
+};
+
+}).call(this,require("buffer").Buffer)
+},{"./binary":179,"buffer":7}],186:[function(require,module,exports){
+//     Underscore.js 1.7.0
+//     http://underscorejs.org
+//     (c) 2009-2014 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+//     Underscore may be freely distributed under the MIT license.
+
+(function() {
+
+  // Baseline setup
+  // --------------
+
+  // Establish the root object, `window` in the browser, or `exports` on the server.
+  var root = this;
+
+  // Save the previous value of the `_` variable.
+  var previousUnderscore = root._;
+
+  // Save bytes in the minified (but not gzipped) version:
+  var ArrayProto = Array.prototype, ObjProto = Object.prototype, FuncProto = Function.prototype;
+
+  // Create quick reference variables for speed access to core prototypes.
+  var
+    push             = ArrayProto.push,
+    slice            = ArrayProto.slice,
+    concat           = ArrayProto.concat,
+    toString         = ObjProto.toString,
+    hasOwnProperty   = ObjProto.hasOwnProperty;
+
+  // All **ECMAScript 5** native function implementations that we hope to use
+  // are declared here.
+  var
+    nativeIsArray      = Array.isArray,
+    nativeKeys         = Object.keys,
+    nativeBind         = FuncProto.bind;
+
+  // Create a safe reference to the Underscore object for use below.
+  var _ = function(obj) {
+    if (obj instanceof _) return obj;
+    if (!(this instanceof _)) return new _(obj);
+    this._wrapped = obj;
+  };
+
+  // Export the Underscore object for **Node.js**, with
+  // backwards-compatibility for the old `require()` API. If we're in
+  // the browser, add `_` as a global object.
+  if (typeof exports !== 'undefined') {
+    if (typeof module !== 'undefined' && module.exports) {
+      exports = module.exports = _;
+    }
+    exports._ = _;
+  } else {
+    root._ = _;
+  }
+
+  // Current version.
+  _.VERSION = '1.7.0';
+
+  // Internal function that returns an efficient (for current engines) version
+  // of the passed-in callback, to be repeatedly applied in other Underscore
+  // functions.
+  var createCallback = function(func, context, argCount) {
+    if (context === void 0) return func;
+    switch (argCount == null ? 3 : argCount) {
+      case 1: return function(value) {
+        return func.call(context, value);
+      };
+      case 2: return function(value, other) {
+        return func.call(context, value, other);
+      };
+      case 3: return function(value, index, collection) {
+        return func.call(context, value, index, collection);
+      };
+      case 4: return function(accumulator, value, index, collection) {
+        return func.call(context, accumulator, value, index, collection);
+      };
+    }
+    return function() {
+      return func.apply(context, arguments);
+    };
+  };
+
+  // A mostly-internal function to generate callbacks that can be applied
+  // to each element in a collection, returning the desired result — either
+  // identity, an arbitrary callback, a property matcher, or a property accessor.
+  _.iteratee = function(value, context, argCount) {
+    if (value == null) return _.identity;
+    if (_.isFunction(value)) return createCallback(value, context, argCount);
+    if (_.isObject(value)) return _.matches(value);
+    return _.property(value);
+  };
+
+  // Collection Functions
+  // --------------------
+
+  // The cornerstone, an `each` implementation, aka `forEach`.
+  // Handles raw objects in addition to array-likes. Treats all
+  // sparse array-likes as if they were dense.
+  _.each = _.forEach = function(obj, iteratee, context) {
+    if (obj == null) return obj;
+    iteratee = createCallback(iteratee, context);
+    var i, length = obj.length;
+    if (length === +length) {
+      for (i = 0; i < length; i++) {
+        iteratee(obj[i], i, obj);
+      }
+    } else {
+      var keys = _.keys(obj);
+      for (i = 0, length = keys.length; i < length; i++) {
+        iteratee(obj[keys[i]], keys[i], obj);
+      }
+    }
+    return obj;
+  };
+
+  // Return the results of applying the iteratee to each element.
+  _.map = _.collect = function(obj, iteratee, context) {
+    if (obj == null) return [];
+    iteratee = _.iteratee(iteratee, context);
+    var keys = obj.length !== +obj.length && _.keys(obj),
+        length = (keys || obj).length,
+        results = Array(length),
+        currentKey;
+    for (var index = 0; index < length; index++) {
+      currentKey = keys ? keys[index] : index;
+      results[index] = iteratee(obj[currentKey], currentKey, obj);
+    }
+    return results;
+  };
+
+  var reduceError = 'Reduce of empty array with no initial value';
+
+  // **Reduce** builds up a single result from a list of values, aka `inject`,
+  // or `foldl`.
+  _.reduce = _.foldl = _.inject = function(obj, iteratee, memo, context) {
+    if (obj == null) obj = [];
+    iteratee = createCallback(iteratee, context, 4);
+    var keys = obj.length !== +obj.length && _.keys(obj),
+        length = (keys || obj).length,
+        index = 0, currentKey;
+    if (arguments.length < 3) {
+      if (!length) throw new TypeError(reduceError);
+      memo = obj[keys ? keys[index++] : index++];
+    }
+    for (; index < length; index++) {
+      currentKey = keys ? keys[index] : index;
+      memo = iteratee(memo, obj[currentKey], currentKey, obj);
+    }
+    return memo;
+  };
+
+  // The right-associative version of reduce, also known as `foldr`.
+  _.reduceRight = _.foldr = function(obj, iteratee, memo, context) {
+    if (obj == null) obj = [];
+    iteratee = createCallback(iteratee, context, 4);
+    var keys = obj.length !== + obj.length && _.keys(obj),
+        index = (keys || obj).length,
+        currentKey;
+    if (arguments.length < 3) {
+      if (!index) throw new TypeError(reduceError);
+      memo = obj[keys ? keys[--index] : --index];
+    }
+    while (index--) {
+      currentKey = keys ? keys[index] : index;
+      memo = iteratee(memo, obj[currentKey], currentKey, obj);
+    }
+    return memo;
+  };
+
+  // Return the first value which passes a truth test. Aliased as `detect`.
+  _.find = _.detect = function(obj, predicate, context) {
+    var result;
+    predicate = _.iteratee(predicate, context);
+    _.some(obj, function(value, index, list) {
+      if (predicate(value, index, list)) {
+        result = value;
+        return true;
+      }
+    });
+    return result;
+  };
+
+  // Return all the elements that pass a truth test.
+  // Aliased as `select`.
+  _.filter = _.select = function(obj, predicate, context) {
+    var results = [];
+    if (obj == null) return results;
+    predicate = _.iteratee(predicate, context);
+    _.each(obj, function(value, index, list) {
+      if (predicate(value, index, list)) results.push(value);
+    });
+    return results;
+  };
+
+  // Return all the elements for which a truth test fails.
+  _.reject = function(obj, predicate, context) {
+    return _.filter(obj, _.negate(_.iteratee(predicate)), context);
+  };
+
+  // Determine whether all of the elements match a truth test.
+  // Aliased as `all`.
+  _.every = _.all = function(obj, predicate, context) {
+    if (obj == null) return true;
+    predicate = _.iteratee(predicate, context);
+    var keys = obj.length !== +obj.length && _.keys(obj),
+        length = (keys || obj).length,
+        index, currentKey;
+    for (index = 0; index < length; index++) {
+      currentKey = keys ? keys[index] : index;
+      if (!predicate(obj[currentKey], currentKey, obj)) return false;
+    }
+    return true;
+  };
+
+  // Determine if at least one element in the object matches a truth test.
+  // Aliased as `any`.
+  _.some = _.any = function(obj, predicate, context) {
+    if (obj == null) return false;
+    predicate = _.iteratee(predicate, context);
+    var keys = obj.length !== +obj.length && _.keys(obj),
+        length = (keys || obj).length,
+        index, currentKey;
+    for (index = 0; index < length; index++) {
+      currentKey = keys ? keys[index] : index;
+      if (predicate(obj[currentKey], currentKey, obj)) return true;
+    }
+    return false;
+  };
+
+  // Determine if the array or object contains a given value (using `===`).
+  // Aliased as `include`.
+  _.contains = _.include = function(obj, target) {
+    if (obj == null) return false;
+    if (obj.length !== +obj.length) obj = _.values(obj);
+    return _.indexOf(obj, target) >= 0;
+  };
+
+  // Invoke a method (with arguments) on every item in a collection.
+  _.invoke = function(obj, method) {
+    var args = slice.call(arguments, 2);
+    var isFunc = _.isFunction(method);
+    return _.map(obj, function(value) {
+      return (isFunc ? method : value[method]).apply(value, args);
+    });
+  };
+
+  // Convenience version of a common use case of `map`: fetching a property.
+  _.pluck = function(obj, key) {
+    return _.map(obj, _.property(key));
+  };
+
+  // Convenience version of a common use case of `filter`: selecting only objects
+  // containing specific `key:value` pairs.
+  _.where = function(obj, attrs) {
+    return _.filter(obj, _.matches(attrs));
+  };
+
+  // Convenience version of a common use case of `find`: getting the first object
+  // containing specific `key:value` pairs.
+  _.findWhere = function(obj, attrs) {
+    return _.find(obj, _.matches(attrs));
+  };
+
+  // Return the maximum element (or element-based computation).
+  _.max = function(obj, iteratee, context) {
+    var result = -Infinity, lastComputed = -Infinity,
+        value, computed;
+    if (iteratee == null && obj != null) {
+      obj = obj.length === +obj.length ? obj : _.values(obj);
+      for (var i = 0, length = obj.length; i < length; i++) {
+        value = obj[i];
+        if (value > result) {
+          result = value;
+        }
+      }
+    } else {
+      iteratee = _.iteratee(iteratee, context);
+      _.each(obj, function(value, index, list) {
+        computed = iteratee(value, index, list);
+        if (computed > lastComputed || computed === -Infinity && result === -Infinity) {
+          result = value;
+          lastComputed = computed;
+        }
+      });
+    }
+    return result;
+  };
+
+  // Return the minimum element (or element-based computation).
+  _.min = function(obj, iteratee, context) {
+    var result = Infinity, lastComputed = Infinity,
+        value, computed;
+    if (iteratee == null && obj != null) {
+      obj = obj.length === +obj.length ? obj : _.values(obj);
+      for (var i = 0, length = obj.length; i < length; i++) {
+        value = obj[i];
+        if (value < result) {
+          result = value;
+        }
+      }
+    } else {
+      iteratee = _.iteratee(iteratee, context);
+      _.each(obj, function(value, index, list) {
+        computed = iteratee(value, index, list);
+        if (computed < lastComputed || computed === Infinity && result === Infinity) {
+          result = value;
+          lastComputed = computed;
+        }
+      });
+    }
+    return result;
+  };
+
+  // Shuffle a collection, using the modern version of the
+  // [Fisher-Yates shuffle](http://en.wikipedia.org/wiki/Fisher–Yates_shuffle).
+  _.shuffle = function(obj) {
+    var set = obj && obj.length === +obj.length ? obj : _.values(obj);
+    var length = set.length;
+    var shuffled = Array(length);
+    for (var index = 0, rand; index < length; index++) {
+      rand = _.random(0, index);
+      if (rand !== index) shuffled[index] = shuffled[rand];
+      shuffled[rand] = set[index];
+    }
+    return shuffled;
+  };
+
+  // Sample **n** random values from a collection.
+  // If **n** is not specified, returns a single random element.
+  // The internal `guard` argument allows it to work with `map`.
+  _.sample = function(obj, n, guard) {
+    if (n == null || guard) {
+      if (obj.length !== +obj.length) obj = _.values(obj);
+      return obj[_.random(obj.length - 1)];
+    }
+    return _.shuffle(obj).slice(0, Math.max(0, n));
+  };
+
+  // Sort the object's values by a criterion produced by an iteratee.
+  _.sortBy = function(obj, iteratee, context) {
+    iteratee = _.iteratee(iteratee, context);
+    return _.pluck(_.map(obj, function(value, index, list) {
+      return {
+        value: value,
+        index: index,
+        criteria: iteratee(value, index, list)
+      };
+    }).sort(function(left, right) {
+      var a = left.criteria;
+      var b = right.criteria;
+      if (a !== b) {
+        if (a > b || a === void 0) return 1;
+        if (a < b || b === void 0) return -1;
+      }
+      return left.index - right.index;
+    }), 'value');
+  };
+
+  // An internal function used for aggregate "group by" operations.
+  var group = function(behavior) {
+    return function(obj, iteratee, context) {
+      var result = {};
+      iteratee = _.iteratee(iteratee, context);
+      _.each(obj, function(value, index) {
+        var key = iteratee(value, index, obj);
+        behavior(result, value, key);
+      });
+      return result;
+    };
+  };
+
+  // Groups the object's values by a criterion. Pass either a string attribute
+  // to group by, or a function that returns the criterion.
+  _.groupBy = group(function(result, value, key) {
+    if (_.has(result, key)) result[key].push(value); else result[key] = [value];
+  });
+
+  // Indexes the object's values by a criterion, similar to `groupBy`, but for
+  // when you know that your index values will be unique.
+  _.indexBy = group(function(result, value, key) {
+    result[key] = value;
+  });
+
+  // Counts instances of an object that group by a certain criterion. Pass
+  // either a string attribute to count by, or a function that returns the
+  // criterion.
+  _.countBy = group(function(result, value, key) {
+    if (_.has(result, key)) result[key]++; else result[key] = 1;
+  });
+
+  // Use a comparator function to figure out the smallest index at which
+  // an object should be inserted so as to maintain order. Uses binary search.
+  _.sortedIndex = function(array, obj, iteratee, context) {
+    iteratee = _.iteratee(iteratee, context, 1);
+    var value = iteratee(obj);
+    var low = 0, high = array.length;
+    while (low < high) {
+      var mid = low + high >>> 1;
+      if (iteratee(array[mid]) < value) low = mid + 1; else high = mid;
+    }
+    return low;
+  };
+
+  // Safely create a real, live array from anything iterable.
+  _.toArray = function(obj) {
+    if (!obj) return [];
+    if (_.isArray(obj)) return slice.call(obj);
+    if (obj.length === +obj.length) return _.map(obj, _.identity);
+    return _.values(obj);
+  };
+
+  // Return the number of elements in an object.
+  _.size = function(obj) {
+    if (obj == null) return 0;
+    return obj.length === +obj.length ? obj.length : _.keys(obj).length;
+  };
+
+  // Split a collection into two arrays: one whose elements all satisfy the given
+  // predicate, and one whose elements all do not satisfy the predicate.
+  _.partition = function(obj, predicate, context) {
+    predicate = _.iteratee(predicate, context);
+    var pass = [], fail = [];
+    _.each(obj, function(value, key, obj) {
+      (predicate(value, key, obj) ? pass : fail).push(value);
+    });
+    return [pass, fail];
+  };
+
+  // Array Functions
+  // ---------------
+
+  // Get the first element of an array. Passing **n** will return the first N
+  // values in the array. Aliased as `head` and `take`. The **guard** check
+  // allows it to work with `_.map`.
+  _.first = _.head = _.take = function(array, n, guard) {
+    if (array == null) return void 0;
+    if (n == null || guard) return array[0];
+    if (n < 0) return [];
+    return slice.call(array, 0, n);
+  };
+
+  // Returns everything but the last entry of the array. Especially useful on
+  // the arguments object. Passing **n** will return all the values in
+  // the array, excluding the last N. The **guard** check allows it to work with
+  // `_.map`.
+  _.initial = function(array, n, guard) {
+    return slice.call(array, 0, Math.max(0, array.length - (n == null || guard ? 1 : n)));
+  };
+
+  // Get the last element of an array. Passing **n** will return the last N
+  // values in the array. The **guard** check allows it to work with `_.map`.
+  _.last = function(array, n, guard) {
+    if (array == null) return void 0;
+    if (n == null || guard) return array[array.length - 1];
+    return slice.call(array, Math.max(array.length - n, 0));
+  };
+
+  // Returns everything but the first entry of the array. Aliased as `tail` and `drop`.
+  // Especially useful on the arguments object. Passing an **n** will return
+  // the rest N values in the array. The **guard**
+  // check allows it to work with `_.map`.
+  _.rest = _.tail = _.drop = function(array, n, guard) {
+    return slice.call(array, n == null || guard ? 1 : n);
+  };
+
+  // Trim out all falsy values from an array.
+  _.compact = function(array) {
+    return _.filter(array, _.identity);
+  };
+
+  // Internal implementation of a recursive `flatten` function.
+  var flatten = function(input, shallow, strict, output) {
+    if (shallow && _.every(input, _.isArray)) {
+      return concat.apply(output, input);
+    }
+    for (var i = 0, length = input.length; i < length; i++) {
+      var value = input[i];
+      if (!_.isArray(value) && !_.isArguments(value)) {
+        if (!strict) output.push(value);
+      } else if (shallow) {
+        push.apply(output, value);
+      } else {
+        flatten(value, shallow, strict, output);
+      }
+    }
+    return output;
+  };
+
+  // Flatten out an array, either recursively (by default), or just one level.
+  _.flatten = function(array, shallow) {
+    return flatten(array, shallow, false, []);
+  };
+
+  // Return a version of the array that does not contain the specified value(s).
+  _.without = function(array) {
+    return _.difference(array, slice.call(arguments, 1));
+  };
+
+  // Produce a duplicate-free version of the array. If the array has already
+  // been sorted, you have the option of using a faster algorithm.
+  // Aliased as `unique`.
+  _.uniq = _.unique = function(array, isSorted, iteratee, context) {
+    if (array == null) return [];
+    if (!_.isBoolean(isSorted)) {
+      context = iteratee;
+      iteratee = isSorted;
+      isSorted = false;
+    }
+    if (iteratee != null) iteratee = _.iteratee(iteratee, context);
+    var result = [];
+    var seen = [];
+    for (var i = 0, length = array.length; i < length; i++) {
+      var value = array[i];
+      if (isSorted) {
+        if (!i || seen !== value) result.push(value);
+        seen = value;
+      } else if (iteratee) {
+        var computed = iteratee(value, i, array);
+        if (_.indexOf(seen, computed) < 0) {
+          seen.push(computed);
+          result.push(value);
+        }
+      } else if (_.indexOf(result, value) < 0) {
+        result.push(value);
+      }
+    }
+    return result;
+  };
+
+  // Produce an array that contains the union: each distinct element from all of
+  // the passed-in arrays.
+  _.union = function() {
+    return _.uniq(flatten(arguments, true, true, []));
+  };
+
+  // Produce an array that contains every item shared between all the
+  // passed-in arrays.
+  _.intersection = function(array) {
+    if (array == null) return [];
+    var result = [];
+    var argsLength = arguments.length;
+    for (var i = 0, length = array.length; i < length; i++) {
+      var item = array[i];
+      if (_.contains(result, item)) continue;
+      for (var j = 1; j < argsLength; j++) {
+        if (!_.contains(arguments[j], item)) break;
+      }
+      if (j === argsLength) result.push(item);
+    }
+    return result;
+  };
+
+  // Take the difference between one array and a number of other arrays.
+  // Only the elements present in just the first array will remain.
+  _.difference = function(array) {
+    var rest = flatten(slice.call(arguments, 1), true, true, []);
+    return _.filter(array, function(value){
+      return !_.contains(rest, value);
+    });
+  };
+
+  // Zip together multiple lists into a single array -- elements that share
+  // an index go together.
+  _.zip = function(array) {
+    if (array == null) return [];
+    var length = _.max(arguments, 'length').length;
+    var results = Array(length);
+    for (var i = 0; i < length; i++) {
+      results[i] = _.pluck(arguments, i);
+    }
+    return results;
+  };
+
+  // Converts lists into objects. Pass either a single array of `[key, value]`
+  // pairs, or two parallel arrays of the same length -- one of keys, and one of
+  // the corresponding values.
+  _.object = function(list, values) {
+    if (list == null) return {};
+    var result = {};
+    for (var i = 0, length = list.length; i < length; i++) {
+      if (values) {
+        result[list[i]] = values[i];
+      } else {
+        result[list[i][0]] = list[i][1];
+      }
+    }
+    return result;
+  };
+
+  // Return the position of the first occurrence of an item in an array,
+  // or -1 if the item is not included in the array.
+  // If the array is large and already in sort order, pass `true`
+  // for **isSorted** to use binary search.
+  _.indexOf = function(array, item, isSorted) {
+    if (array == null) return -1;
+    var i = 0, length = array.length;
+    if (isSorted) {
+      if (typeof isSorted == 'number') {
+        i = isSorted < 0 ? Math.max(0, length + isSorted) : isSorted;
+      } else {
+        i = _.sortedIndex(array, item);
+        return array[i] === item ? i : -1;
+      }
+    }
+    for (; i < length; i++) if (array[i] === item) return i;
+    return -1;
+  };
+
+  _.lastIndexOf = function(array, item, from) {
+    if (array == null) return -1;
+    var idx = array.length;
+    if (typeof from == 'number') {
+      idx = from < 0 ? idx + from + 1 : Math.min(idx, from + 1);
+    }
+    while (--idx >= 0) if (array[idx] === item) return idx;
+    return -1;
+  };
+
+  // Generate an integer Array containing an arithmetic progression. A port of
+  // the native Python `range()` function. See
+  // [the Python documentation](http://docs.python.org/library/functions.html#range).
+  _.range = function(start, stop, step) {
+    if (arguments.length <= 1) {
+      stop = start || 0;
+      start = 0;
+    }
+    step = step || 1;
+
+    var length = Math.max(Math.ceil((stop - start) / step), 0);
+    var range = Array(length);
+
+    for (var idx = 0; idx < length; idx++, start += step) {
+      range[idx] = start;
+    }
+
+    return range;
+  };
+
+  // Function (ahem) Functions
+  // ------------------
+
+  // Reusable constructor function for prototype setting.
+  var Ctor = function(){};
+
+  // Create a function bound to a given object (assigning `this`, and arguments,
+  // optionally). Delegates to **ECMAScript 5**'s native `Function.bind` if
+  // available.
+  _.bind = function(func, context) {
+    var args, bound;
+    if (nativeBind && func.bind === nativeBind) return nativeBind.apply(func, slice.call(arguments, 1));
+    if (!_.isFunction(func)) throw new TypeError('Bind must be called on a function');
+    args = slice.call(arguments, 2);
+    bound = function() {
+      if (!(this instanceof bound)) return func.apply(context, args.concat(slice.call(arguments)));
+      Ctor.prototype = func.prototype;
+      var self = new Ctor;
+      Ctor.prototype = null;
+      var result = func.apply(self, args.concat(slice.call(arguments)));
+      if (_.isObject(result)) return result;
+      return self;
+    };
+    return bound;
+  };
+
+  // Partially apply a function by creating a version that has had some of its
+  // arguments pre-filled, without changing its dynamic `this` context. _ acts
+  // as a placeholder, allowing any combination of arguments to be pre-filled.
+  _.partial = function(func) {
+    var boundArgs = slice.call(arguments, 1);
+    return function() {
+      var position = 0;
+      var args = boundArgs.slice();
+      for (var i = 0, length = args.length; i < length; i++) {
+        if (args[i] === _) args[i] = arguments[position++];
+      }
+      while (position < arguments.length) args.push(arguments[position++]);
+      return func.apply(this, args);
+    };
+  };
+
+  // Bind a number of an object's methods to that object. Remaining arguments
+  // are the method names to be bound. Useful for ensuring that all callbacks
+  // defined on an object belong to it.
+  _.bindAll = function(obj) {
+    var i, length = arguments.length, key;
+    if (length <= 1) throw new Error('bindAll must be passed function names');
+    for (i = 1; i < length; i++) {
+      key = arguments[i];
+      obj[key] = _.bind(obj[key], obj);
+    }
+    return obj;
+  };
+
+  // Memoize an expensive function by storing its results.
+  _.memoize = function(func, hasher) {
+    var memoize = function(key) {
+      var cache = memoize.cache;
+      var address = hasher ? hasher.apply(this, arguments) : key;
+      if (!_.has(cache, address)) cache[address] = func.apply(this, arguments);
+      return cache[address];
+    };
+    memoize.cache = {};
+    return memoize;
+  };
+
+  // Delays a function for the given number of milliseconds, and then calls
+  // it with the arguments supplied.
+  _.delay = function(func, wait) {
+    var args = slice.call(arguments, 2);
+    return setTimeout(function(){
+      return func.apply(null, args);
+    }, wait);
+  };
+
+  // Defers a function, scheduling it to run after the current call stack has
+  // cleared.
+  _.defer = function(func) {
+    return _.delay.apply(_, [func, 1].concat(slice.call(arguments, 1)));
+  };
+
+  // Returns a function, that, when invoked, will only be triggered at most once
+  // during a given window of time. Normally, the throttled function will run
+  // as much as it can, without ever going more than once per `wait` duration;
+  // but if you'd like to disable the execution on the leading edge, pass
+  // `{leading: false}`. To disable execution on the trailing edge, ditto.
+  _.throttle = function(func, wait, options) {
+    var context, args, result;
+    var timeout = null;
+    var previous = 0;
+    if (!options) options = {};
+    var later = function() {
+      previous = options.leading === false ? 0 : _.now();
+      timeout = null;
+      result = func.apply(context, args);
+      if (!timeout) context = args = null;
+    };
+    return function() {
+      var now = _.now();
+      if (!previous && options.leading === false) previous = now;
+      var remaining = wait - (now - previous);
+      context = this;
+      args = arguments;
+      if (remaining <= 0 || remaining > wait) {
+        clearTimeout(timeout);
+        timeout = null;
+        previous = now;
+        result = func.apply(context, args);
+        if (!timeout) context = args = null;
+      } else if (!timeout && options.trailing !== false) {
+        timeout = setTimeout(later, remaining);
+      }
+      return result;
+    };
+  };
+
+  // Returns a function, that, as long as it continues to be invoked, will not
+  // be triggered. The function will be called after it stops being called for
+  // N milliseconds. If `immediate` is passed, trigger the function on the
+  // leading edge, instead of the trailing.
+  _.debounce = function(func, wait, immediate) {
+    var timeout, args, context, timestamp, result;
+
+    var later = function() {
+      var last = _.now() - timestamp;
+
+      if (last < wait && last > 0) {
+        timeout = setTimeout(later, wait - last);
+      } else {
+        timeout = null;
+        if (!immediate) {
+          result = func.apply(context, args);
+          if (!timeout) context = args = null;
+        }
+      }
+    };
+
+    return function() {
+      context = this;
+      args = arguments;
+      timestamp = _.now();
+      var callNow = immediate && !timeout;
+      if (!timeout) timeout = setTimeout(later, wait);
+      if (callNow) {
+        result = func.apply(context, args);
+        context = args = null;
+      }
+
+      return result;
+    };
+  };
+
+  // Returns the first function passed as an argument to the second,
+  // allowing you to adjust arguments, run code before and after, and
+  // conditionally execute the original function.
+  _.wrap = function(func, wrapper) {
+    return _.partial(wrapper, func);
+  };
+
+  // Returns a negated version of the passed-in predicate.
+  _.negate = function(predicate) {
+    return function() {
+      return !predicate.apply(this, arguments);
+    };
+  };
+
+  // Returns a function that is the composition of a list of functions, each
+  // consuming the return value of the function that follows.
+  _.compose = function() {
+    var args = arguments;
+    var start = args.length - 1;
+    return function() {
+      var i = start;
+      var result = args[start].apply(this, arguments);
+      while (i--) result = args[i].call(this, result);
+      return result;
+    };
+  };
+
+  // Returns a function that will only be executed after being called N times.
+  _.after = function(times, func) {
+    return function() {
+      if (--times < 1) {
+        return func.apply(this, arguments);
+      }
+    };
+  };
+
+  // Returns a function that will only be executed before being called N times.
+  _.before = function(times, func) {
+    var memo;
+    return function() {
+      if (--times > 0) {
+        memo = func.apply(this, arguments);
+      } else {
+        func = null;
+      }
+      return memo;
+    };
+  };
+
+  // Returns a function that will be executed at most one time, no matter how
+  // often you call it. Useful for lazy initialization.
+  _.once = _.partial(_.before, 2);
+
+  // Object Functions
+  // ----------------
+
+  // Retrieve the names of an object's properties.
+  // Delegates to **ECMAScript 5**'s native `Object.keys`
+  _.keys = function(obj) {
+    if (!_.isObject(obj)) return [];
+    if (nativeKeys) return nativeKeys(obj);
+    var keys = [];
+    for (var key in obj) if (_.has(obj, key)) keys.push(key);
+    return keys;
+  };
+
+  // Retrieve the values of an object's properties.
+  _.values = function(obj) {
+    var keys = _.keys(obj);
+    var length = keys.length;
+    var values = Array(length);
+    for (var i = 0; i < length; i++) {
+      values[i] = obj[keys[i]];
+    }
+    return values;
+  };
+
+  // Convert an object into a list of `[key, value]` pairs.
+  _.pairs = function(obj) {
+    var keys = _.keys(obj);
+    var length = keys.length;
+    var pairs = Array(length);
+    for (var i = 0; i < length; i++) {
+      pairs[i] = [keys[i], obj[keys[i]]];
+    }
+    return pairs;
+  };
+
+  // Invert the keys and values of an object. The values must be serializable.
+  _.invert = function(obj) {
+    var result = {};
+    var keys = _.keys(obj);
+    for (var i = 0, length = keys.length; i < length; i++) {
+      result[obj[keys[i]]] = keys[i];
+    }
+    return result;
+  };
+
+  // Return a sorted list of the function names available on the object.
+  // Aliased as `methods`
+  _.functions = _.methods = function(obj) {
+    var names = [];
+    for (var key in obj) {
+      if (_.isFunction(obj[key])) names.push(key);
+    }
+    return names.sort();
+  };
+
+  // Extend a given object with all the properties in passed-in object(s).
+  _.extend = function(obj) {
+    if (!_.isObject(obj)) return obj;
+    var source, prop;
+    for (var i = 1, length = arguments.length; i < length; i++) {
+      source = arguments[i];
+      for (prop in source) {
+        if (hasOwnProperty.call(source, prop)) {
+            obj[prop] = source[prop];
+        }
+      }
+    }
+    return obj;
+  };
+
+  // Return a copy of the object only containing the whitelisted properties.
+  _.pick = function(obj, iteratee, context) {
+    var result = {}, key;
+    if (obj == null) return result;
+    if (_.isFunction(iteratee)) {
+      iteratee = createCallback(iteratee, context);
+      for (key in obj) {
+        var value = obj[key];
+        if (iteratee(value, key, obj)) result[key] = value;
+      }
+    } else {
+      var keys = concat.apply([], slice.call(arguments, 1));
+      obj = new Object(obj);
+      for (var i = 0, length = keys.length; i < length; i++) {
+        key = keys[i];
+        if (key in obj) result[key] = obj[key];
+      }
+    }
+    return result;
+  };
+
+   // Return a copy of the object without the blacklisted properties.
+  _.omit = function(obj, iteratee, context) {
+    if (_.isFunction(iteratee)) {
+      iteratee = _.negate(iteratee);
+    } else {
+      var keys = _.map(concat.apply([], slice.call(arguments, 1)), String);
+      iteratee = function(value, key) {
+        return !_.contains(keys, key);
+      };
+    }
+    return _.pick(obj, iteratee, context);
+  };
+
+  // Fill in a given object with default properties.
+  _.defaults = function(obj) {
+    if (!_.isObject(obj)) return obj;
+    for (var i = 1, length = arguments.length; i < length; i++) {
+      var source = arguments[i];
+      for (var prop in source) {
+        if (obj[prop] === void 0) obj[prop] = source[prop];
+      }
+    }
+    return obj;
+  };
+
+  // Create a (shallow-cloned) duplicate of an object.
+  _.clone = function(obj) {
+    if (!_.isObject(obj)) return obj;
+    return _.isArray(obj) ? obj.slice() : _.extend({}, obj);
+  };
+
+  // Invokes interceptor with the obj, and then returns obj.
+  // The primary purpose of this method is to "tap into" a method chain, in
+  // order to perform operations on intermediate results within the chain.
+  _.tap = function(obj, interceptor) {
+    interceptor(obj);
+    return obj;
+  };
+
+  // Internal recursive comparison function for `isEqual`.
+  var eq = function(a, b, aStack, bStack) {
+    // Identical objects are equal. `0 === -0`, but they aren't identical.
+    // See the [Harmony `egal` proposal](http://wiki.ecmascript.org/doku.php?id=harmony:egal).
+    if (a === b) return a !== 0 || 1 / a === 1 / b;
+    // A strict comparison is necessary because `null == undefined`.
+    if (a == null || b == null) return a === b;
+    // Unwrap any wrapped objects.
+    if (a instanceof _) a = a._wrapped;
+    if (b instanceof _) b = b._wrapped;
+    // Compare `[[Class]]` names.
+    var className = toString.call(a);
+    if (className !== toString.call(b)) return false;
+    switch (className) {
+      // Strings, numbers, regular expressions, dates, and booleans are compared by value.
+      case '[object RegExp]':
+      // RegExps are coerced to strings for comparison (Note: '' + /a/i === '/a/i')
+      case '[object String]':
+        // Primitives and their corresponding object wrappers are equivalent; thus, `"5"` is
+        // equivalent to `new String("5")`.
+        return '' + a === '' + b;
+      case '[object Number]':
+        // `NaN`s are equivalent, but non-reflexive.
+        // Object(NaN) is equivalent to NaN
+        if (+a !== +a) return +b !== +b;
+        // An `egal` comparison is performed for other numeric values.
+        return +a === 0 ? 1 / +a === 1 / b : +a === +b;
+      case '[object Date]':
+      case '[object Boolean]':
+        // Coerce dates and booleans to numeric primitive values. Dates are compared by their
+        // millisecond representations. Note that invalid dates with millisecond representations
+        // of `NaN` are not equivalent.
+        return +a === +b;
+    }
+    if (typeof a != 'object' || typeof b != 'object') return false;
+    // Assume equality for cyclic structures. The algorithm for detecting cyclic
+    // structures is adapted from ES 5.1 section 15.12.3, abstract operation `JO`.
+    var length = aStack.length;
+    while (length--) {
+      // Linear search. Performance is inversely proportional to the number of
+      // unique nested structures.
+      if (aStack[length] === a) return bStack[length] === b;
+    }
+    // Objects with different constructors are not equivalent, but `Object`s
+    // from different frames are.
+    var aCtor = a.constructor, bCtor = b.constructor;
+    if (
+      aCtor !== bCtor &&
+      // Handle Object.create(x) cases
+      'constructor' in a && 'constructor' in b &&
+      !(_.isFunction(aCtor) && aCtor instanceof aCtor &&
+        _.isFunction(bCtor) && bCtor instanceof bCtor)
+    ) {
+      return false;
+    }
+    // Add the first object to the stack of traversed objects.
+    aStack.push(a);
+    bStack.push(b);
+    var size, result;
+    // Recursively compare objects and arrays.
+    if (className === '[object Array]') {
+      // Compare array lengths to determine if a deep comparison is necessary.
+      size = a.length;
+      result = size === b.length;
+      if (result) {
+        // Deep compare the contents, ignoring non-numeric properties.
+        while (size--) {
+          if (!(result = eq(a[size], b[size], aStack, bStack))) break;
+        }
+      }
+    } else {
+      // Deep compare objects.
+      var keys = _.keys(a), key;
+      size = keys.length;
+      // Ensure that both objects contain the same number of properties before comparing deep equality.
+      result = _.keys(b).length === size;
+      if (result) {
+        while (size--) {
+          // Deep compare each member
+          key = keys[size];
+          if (!(result = _.has(b, key) && eq(a[key], b[key], aStack, bStack))) break;
+        }
+      }
+    }
+    // Remove the first object from the stack of traversed objects.
+    aStack.pop();
+    bStack.pop();
+    return result;
+  };
+
+  // Perform a deep comparison to check if two objects are equal.
+  _.isEqual = function(a, b) {
+    return eq(a, b, [], []);
+  };
+
+  // Is a given array, string, or object empty?
+  // An "empty" object has no enumerable own-properties.
+  _.isEmpty = function(obj) {
+    if (obj == null) return true;
+    if (_.isArray(obj) || _.isString(obj) || _.isArguments(obj)) return obj.length === 0;
+    for (var key in obj) if (_.has(obj, key)) return false;
+    return true;
+  };
+
+  // Is a given value a DOM element?
+  _.isElement = function(obj) {
+    return !!(obj && obj.nodeType === 1);
+  };
+
+  // Is a given value an array?
+  // Delegates to ECMA5's native Array.isArray
+  _.isArray = nativeIsArray || function(obj) {
+    return toString.call(obj) === '[object Array]';
+  };
+
+  // Is a given variable an object?
+  _.isObject = function(obj) {
+    var type = typeof obj;
+    return type === 'function' || type === 'object' && !!obj;
+  };
+
+  // Add some isType methods: isArguments, isFunction, isString, isNumber, isDate, isRegExp.
+  _.each(['Arguments', 'Function', 'String', 'Number', 'Date', 'RegExp'], function(name) {
+    _['is' + name] = function(obj) {
+      return toString.call(obj) === '[object ' + name + ']';
+    };
+  });
+
+  // Define a fallback version of the method in browsers (ahem, IE), where
+  // there isn't any inspectable "Arguments" type.
+  if (!_.isArguments(arguments)) {
+    _.isArguments = function(obj) {
+      return _.has(obj, 'callee');
+    };
+  }
+
+  // Optimize `isFunction` if appropriate. Work around an IE 11 bug.
+  if (typeof /./ !== 'function') {
+    _.isFunction = function(obj) {
+      return typeof obj == 'function' || false;
+    };
+  }
+
+  // Is a given object a finite number?
+  _.isFinite = function(obj) {
+    return isFinite(obj) && !isNaN(parseFloat(obj));
+  };
+
+  // Is the given value `NaN`? (NaN is the only number which does not equal itself).
+  _.isNaN = function(obj) {
+    return _.isNumber(obj) && obj !== +obj;
+  };
+
+  // Is a given value a boolean?
+  _.isBoolean = function(obj) {
+    return obj === true || obj === false || toString.call(obj) === '[object Boolean]';
+  };
+
+  // Is a given value equal to null?
+  _.isNull = function(obj) {
+    return obj === null;
+  };
+
+  // Is a given variable undefined?
+  _.isUndefined = function(obj) {
+    return obj === void 0;
+  };
+
+  // Shortcut function for checking if an object has a given property directly
+  // on itself (in other words, not on a prototype).
+  _.has = function(obj, key) {
+    return obj != null && hasOwnProperty.call(obj, key);
+  };
+
+  // Utility Functions
+  // -----------------
+
+  // Run Underscore.js in *noConflict* mode, returning the `_` variable to its
+  // previous owner. Returns a reference to the Underscore object.
+  _.noConflict = function() {
+    root._ = previousUnderscore;
+    return this;
+  };
+
+  // Keep the identity function around for default iteratees.
+  _.identity = function(value) {
+    return value;
+  };
+
+  _.constant = function(value) {
+    return function() {
+      return value;
+    };
+  };
+
+  _.noop = function(){};
+
+  _.property = function(key) {
+    return function(obj) {
+      return obj[key];
+    };
+  };
+
+  // Returns a predicate for checking whether an object has a given set of `key:value` pairs.
+  _.matches = function(attrs) {
+    var pairs = _.pairs(attrs), length = pairs.length;
+    return function(obj) {
+      if (obj == null) return !length;
+      obj = new Object(obj);
+      for (var i = 0; i < length; i++) {
+        var pair = pairs[i], key = pair[0];
+        if (pair[1] !== obj[key] || !(key in obj)) return false;
+      }
+      return true;
+    };
+  };
+
+  // Run a function **n** times.
+  _.times = function(n, iteratee, context) {
+    var accum = Array(Math.max(0, n));
+    iteratee = createCallback(iteratee, context, 1);
+    for (var i = 0; i < n; i++) accum[i] = iteratee(i);
+    return accum;
+  };
+
+  // Return a random integer between min and max (inclusive).
+  _.random = function(min, max) {
+    if (max == null) {
+      max = min;
+      min = 0;
+    }
+    return min + Math.floor(Math.random() * (max - min + 1));
+  };
+
+  // A (possibly faster) way to get the current timestamp as an integer.
+  _.now = Date.now || function() {
+    return new Date().getTime();
+  };
+
+   // List of HTML entities for escaping.
+  var escapeMap = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#x27;',
+    '`': '&#x60;'
+  };
+  var unescapeMap = _.invert(escapeMap);
+
+  // Functions for escaping and unescaping strings to/from HTML interpolation.
+  var createEscaper = function(map) {
+    var escaper = function(match) {
+      return map[match];
+    };
+    // Regexes for identifying a key that needs to be escaped
+    var source = '(?:' + _.keys(map).join('|') + ')';
+    var testRegexp = RegExp(source);
+    var replaceRegexp = RegExp(source, 'g');
+    return function(string) {
+      string = string == null ? '' : '' + string;
+      return testRegexp.test(string) ? string.replace(replaceRegexp, escaper) : string;
+    };
+  };
+  _.escape = createEscaper(escapeMap);
+  _.unescape = createEscaper(unescapeMap);
+
+  // If the value of the named `property` is a function then invoke it with the
+  // `object` as context; otherwise, return it.
+  _.result = function(object, property) {
+    if (object == null) return void 0;
+    var value = object[property];
+    return _.isFunction(value) ? object[property]() : value;
+  };
+
+  // Generate a unique integer id (unique within the entire client session).
+  // Useful for temporary DOM ids.
+  var idCounter = 0;
+  _.uniqueId = function(prefix) {
+    var id = ++idCounter + '';
+    return prefix ? prefix + id : id;
+  };
+
+  // By default, Underscore uses ERB-style template delimiters, change the
+  // following template settings to use alternative delimiters.
+  _.templateSettings = {
+    evaluate    : /<%([\s\S]+?)%>/g,
+    interpolate : /<%=([\s\S]+?)%>/g,
+    escape      : /<%-([\s\S]+?)%>/g
+  };
+
+  // When customizing `templateSettings`, if you don't want to define an
+  // interpolation, evaluation or escaping regex, we need one that is
+  // guaranteed not to match.
+  var noMatch = /(.)^/;
+
+  // Certain characters need to be escaped so that they can be put into a
+  // string literal.
+  var escapes = {
+    "'":      "'",
+    '\\':     '\\',
+    '\r':     'r',
+    '\n':     'n',
+    '\u2028': 'u2028',
+    '\u2029': 'u2029'
+  };
+
+  var escaper = /\\|'|\r|\n|\u2028|\u2029/g;
+
+  var escapeChar = function(match) {
+    return '\\' + escapes[match];
+  };
+
+  // JavaScript micro-templating, similar to John Resig's implementation.
+  // Underscore templating handles arbitrary delimiters, preserves whitespace,
+  // and correctly escapes quotes within interpolated code.
+  // NB: `oldSettings` only exists for backwards compatibility.
+  _.template = function(text, settings, oldSettings) {
+    if (!settings && oldSettings) settings = oldSettings;
+    settings = _.defaults({}, settings, _.templateSettings);
+
+    // Combine delimiters into one regular expression via alternation.
+    var matcher = RegExp([
+      (settings.escape || noMatch).source,
+      (settings.interpolate || noMatch).source,
+      (settings.evaluate || noMatch).source
+    ].join('|') + '|$', 'g');
+
+    // Compile the template source, escaping string literals appropriately.
+    var index = 0;
+    var source = "__p+='";
+    text.replace(matcher, function(match, escape, interpolate, evaluate, offset) {
+      source += text.slice(index, offset).replace(escaper, escapeChar);
+      index = offset + match.length;
+
+      if (escape) {
+        source += "'+\n((__t=(" + escape + "))==null?'':_.escape(__t))+\n'";
+      } else if (interpolate) {
+        source += "'+\n((__t=(" + interpolate + "))==null?'':__t)+\n'";
+      } else if (evaluate) {
+        source += "';\n" + evaluate + "\n__p+='";
+      }
+
+      // Adobe VMs need the match returned to produce the correct offest.
+      return match;
+    });
+    source += "';\n";
+
+    // If a variable is not specified, place data values in local scope.
+    if (!settings.variable) source = 'with(obj||{}){\n' + source + '}\n';
+
+    source = "var __t,__p='',__j=Array.prototype.join," +
+      "print=function(){__p+=__j.call(arguments,'');};\n" +
+      source + 'return __p;\n';
+
+    try {
+      var render = new Function(settings.variable || 'obj', '_', source);
+    } catch (e) {
+      e.source = source;
+      throw e;
+    }
+
+    var template = function(data) {
+      return render.call(this, data, _);
+    };
+
+    // Provide the compiled source as a convenience for precompilation.
+    var argument = settings.variable || 'obj';
+    template.source = 'function(' + argument + '){\n' + source + '}';
+
+    return template;
+  };
+
+  // Add a "chain" function. Start chaining a wrapped Underscore object.
+  _.chain = function(obj) {
+    var instance = _(obj);
+    instance._chain = true;
+    return instance;
+  };
+
+  // OOP
+  // ---------------
+  // If Underscore is called as a function, it returns a wrapped object that
+  // can be used OO-style. This wrapper holds altered versions of all the
+  // underscore functions. Wrapped objects may be chained.
+
+  // Helper function to continue chaining intermediate results.
+  var result = function(obj) {
+    return this._chain ? _(obj).chain() : obj;
+  };
+
+  // Add your own custom functions to the Underscore object.
+  _.mixin = function(obj) {
+    _.each(_.functions(obj), function(name) {
+      var func = _[name] = obj[name];
+      _.prototype[name] = function() {
+        var args = [this._wrapped];
+        push.apply(args, arguments);
+        return result.call(this, func.apply(_, args));
+      };
+    });
+  };
+
+  // Add all of the Underscore functions to the wrapper object.
+  _.mixin(_);
+
+  // Add all mutator Array functions to the wrapper.
+  _.each(['pop', 'push', 'reverse', 'shift', 'sort', 'splice', 'unshift'], function(name) {
+    var method = ArrayProto[name];
+    _.prototype[name] = function() {
+      var obj = this._wrapped;
+      method.apply(obj, arguments);
+      if ((name === 'shift' || name === 'splice') && obj.length === 0) delete obj[0];
+      return result.call(this, obj);
+    };
+  });
+
+  // Add all accessor Array functions to the wrapper.
+  _.each(['concat', 'join', 'slice'], function(name) {
+    var method = ArrayProto[name];
+    _.prototype[name] = function() {
+      return result.call(this, method.apply(this._wrapped, arguments));
+    };
+  });
+
+  // Extracts the result from a wrapped and chained object.
+  _.prototype.value = function() {
+    return this._wrapped;
+  };
+
+  // AMD registration happens at the end for compatibility with AMD loaders
+  // that may not enforce next-turn semantics on modules. Even though general
+  // practice for AMD registration is to be anonymous, underscore registers
+  // as a named module because, like jQuery, it is a base library that is
+  // popular enough to be bundled in a third party lib, but not be part of
+  // an AMD load request. Those cases could generate an error when an
+  // anonymous define() is called outside of a loader request.
+  if (typeof define === 'function' && define.amd) {
+    define('underscore', [], function() {
+      return _;
+    });
+  }
+}.call(this));
+
+},{}],187:[function(require,module,exports){
+module.exports = function isBuffer(arg) {
+  return arg && typeof arg === 'object'
+    && typeof arg.copy === 'function'
+    && typeof arg.fill === 'function'
+    && typeof arg.readUInt8 === 'function';
+}
+},{}],188:[function(require,module,exports){
+(function (process,global){
+// Copyright Joyent, Inc. and other Node contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to permit
+// persons to whom the Software is furnished to do so, subject to the
+// following conditions:
+//
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+// USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+var formatRegExp = /%[sdj%]/g;
+exports.format = function(f) {
+  if (!isString(f)) {
+    var objects = [];
+    for (var i = 0; i < arguments.length; i++) {
+      objects.push(inspect(arguments[i]));
+    }
+    return objects.join(' ');
+  }
+
+  var i = 1;
+  var args = arguments;
+  var len = args.length;
+  var str = String(f).replace(formatRegExp, function(x) {
+    if (x === '%%') return '%';
+    if (i >= len) return x;
+    switch (x) {
+      case '%s': return String(args[i++]);
+      case '%d': return Number(args[i++]);
+      case '%j':
+        try {
+          return JSON.stringify(args[i++]);
+        } catch (_) {
+          return '[Circular]';
+        }
+      default:
+        return x;
+    }
+  });
+  for (var x = args[i]; i < len; x = args[++i]) {
+    if (isNull(x) || !isObject(x)) {
+      str += ' ' + x;
+    } else {
+      str += ' ' + inspect(x);
+    }
+  }
+  return str;
+};
+
+
+// Mark that a method should not be used.
+// Returns a modified function which warns once by default.
+// If --no-deprecation is set, then it is a no-op.
+exports.deprecate = function(fn, msg) {
+  // Allow for deprecating things in the process of starting up.
+  if (isUndefined(global.process)) {
+    return function() {
+      return exports.deprecate(fn, msg).apply(this, arguments);
+    };
+  }
+
+  if (process.noDeprecation === true) {
+    return fn;
+  }
+
+  var warned = false;
+  function deprecated() {
+    if (!warned) {
+      if (process.throwDeprecation) {
+        throw new Error(msg);
+      } else if (process.traceDeprecation) {
+        console.trace(msg);
+      } else {
+        console.error(msg);
+      }
+      warned = true;
+    }
+    return fn.apply(this, arguments);
+  }
+
+  return deprecated;
+};
+
+
+var debugs = {};
+var debugEnviron;
+exports.debuglog = function(set) {
+  if (isUndefined(debugEnviron))
+    debugEnviron = process.env.NODE_DEBUG || '';
+  set = set.toUpperCase();
+  if (!debugs[set]) {
+    if (new RegExp('\\b' + set + '\\b', 'i').test(debugEnviron)) {
+      var pid = process.pid;
+      debugs[set] = function() {
+        var msg = exports.format.apply(exports, arguments);
+        console.error('%s %d: %s', set, pid, msg);
+      };
+    } else {
+      debugs[set] = function() {};
+    }
+  }
+  return debugs[set];
+};
+
+
+/**
+ * Echos the value of a value. Trys to print the value out
+ * in the best way possible given the different types.
+ *
+ * @param {Object} obj The object to print out.
+ * @param {Object} opts Optional options object that alters the output.
+ */
+/* legacy: obj, showHidden, depth, colors*/
+function inspect(obj, opts) {
+  // default options
+  var ctx = {
+    seen: [],
+    stylize: stylizeNoColor
+  };
+  // legacy...
+  if (arguments.length >= 3) ctx.depth = arguments[2];
+  if (arguments.length >= 4) ctx.colors = arguments[3];
+  if (isBoolean(opts)) {
+    // legacy...
+    ctx.showHidden = opts;
+  } else if (opts) {
+    // got an "options" object
+    exports._extend(ctx, opts);
+  }
+  // set default options
+  if (isUndefined(ctx.showHidden)) ctx.showHidden = false;
+  if (isUndefined(ctx.depth)) ctx.depth = 2;
+  if (isUndefined(ctx.colors)) ctx.colors = false;
+  if (isUndefined(ctx.customInspect)) ctx.customInspect = true;
+  if (ctx.colors) ctx.stylize = stylizeWithColor;
+  return formatValue(ctx, obj, ctx.depth);
+}
+exports.inspect = inspect;
+
+
+// http://en.wikipedia.org/wiki/ANSI_escape_code#graphics
+inspect.colors = {
+  'bold' : [1, 22],
+  'italic' : [3, 23],
+  'underline' : [4, 24],
+  'inverse' : [7, 27],
+  'white' : [37, 39],
+  'grey' : [90, 39],
+  'black' : [30, 39],
+  'blue' : [34, 39],
+  'cyan' : [36, 39],
+  'green' : [32, 39],
+  'magenta' : [35, 39],
+  'red' : [31, 39],
+  'yellow' : [33, 39]
+};
+
+// Don't use 'blue' not visible on cmd.exe
+inspect.styles = {
+  'special': 'cyan',
+  'number': 'yellow',
+  'boolean': 'yellow',
+  'undefined': 'grey',
+  'null': 'bold',
+  'string': 'green',
+  'date': 'magenta',
+  // "name": intentionally not styling
+  'regexp': 'red'
+};
+
+
+function stylizeWithColor(str, styleType) {
+  var style = inspect.styles[styleType];
+
+  if (style) {
+    return '\u001b[' + inspect.colors[style][0] + 'm' + str +
+           '\u001b[' + inspect.colors[style][1] + 'm';
+  } else {
+    return str;
+  }
+}
+
+
+function stylizeNoColor(str, styleType) {
+  return str;
+}
+
+
+function arrayToHash(array) {
+  var hash = {};
+
+  array.forEach(function(val, idx) {
+    hash[val] = true;
+  });
+
+  return hash;
+}
+
+
+function formatValue(ctx, value, recurseTimes) {
+  // Provide a hook for user-specified inspect functions.
+  // Check that value is an object with an inspect function on it
+  if (ctx.customInspect &&
+      value &&
+      isFunction(value.inspect) &&
+      // Filter out the util module, it's inspect function is special
+      value.inspect !== exports.inspect &&
+      // Also filter out any prototype objects using the circular check.
+      !(value.constructor && value.constructor.prototype === value)) {
+    var ret = value.inspect(recurseTimes, ctx);
+    if (!isString(ret)) {
+      ret = formatValue(ctx, ret, recurseTimes);
+    }
+    return ret;
+  }
+
+  // Primitive types cannot have properties
+  var primitive = formatPrimitive(ctx, value);
+  if (primitive) {
+    return primitive;
+  }
+
+  // Look up the keys of the object.
+  var keys = Object.keys(value);
+  var visibleKeys = arrayToHash(keys);
+
+  if (ctx.showHidden) {
+    keys = Object.getOwnPropertyNames(value);
+  }
+
+  // IE doesn't make error fields non-enumerable
+  // http://msdn.microsoft.com/en-us/library/ie/dww52sbt(v=vs.94).aspx
+  if (isError(value)
+      && (keys.indexOf('message') >= 0 || keys.indexOf('description') >= 0)) {
+    return formatError(value);
+  }
+
+  // Some type of object without properties can be shortcutted.
+  if (keys.length === 0) {
+    if (isFunction(value)) {
+      var name = value.name ? ': ' + value.name : '';
+      return ctx.stylize('[Function' + name + ']', 'special');
+    }
+    if (isRegExp(value)) {
+      return ctx.stylize(RegExp.prototype.toString.call(value), 'regexp');
+    }
+    if (isDate(value)) {
+      return ctx.stylize(Date.prototype.toString.call(value), 'date');
+    }
+    if (isError(value)) {
+      return formatError(value);
+    }
+  }
+
+  var base = '', array = false, braces = ['{', '}'];
+
+  // Make Array say that they are Array
+  if (isArray(value)) {
+    array = true;
+    braces = ['[', ']'];
+  }
+
+  // Make functions say that they are functions
+  if (isFunction(value)) {
+    var n = value.name ? ': ' + value.name : '';
+    base = ' [Function' + n + ']';
+  }
+
+  // Make RegExps say that they are RegExps
+  if (isRegExp(value)) {
+    base = ' ' + RegExp.prototype.toString.call(value);
+  }
+
+  // Make dates with properties first say the date
+  if (isDate(value)) {
+    base = ' ' + Date.prototype.toUTCString.call(value);
+  }
+
+  // Make error with message first say the error
+  if (isError(value)) {
+    base = ' ' + formatError(value);
+  }
+
+  if (keys.length === 0 && (!array || value.length == 0)) {
+    return braces[0] + base + braces[1];
+  }
+
+  if (recurseTimes < 0) {
+    if (isRegExp(value)) {
+      return ctx.stylize(RegExp.prototype.toString.call(value), 'regexp');
+    } else {
+      return ctx.stylize('[Object]', 'special');
+    }
+  }
+
+  ctx.seen.push(value);
+
+  var output;
+  if (array) {
+    output = formatArray(ctx, value, recurseTimes, visibleKeys, keys);
+  } else {
+    output = keys.map(function(key) {
+      return formatProperty(ctx, value, recurseTimes, visibleKeys, key, array);
+    });
+  }
+
+  ctx.seen.pop();
+
+  return reduceToSingleString(output, base, braces);
+}
+
+
+function formatPrimitive(ctx, value) {
+  if (isUndefined(value))
+    return ctx.stylize('undefined', 'undefined');
+  if (isString(value)) {
+    var simple = '\'' + JSON.stringify(value).replace(/^"|"$/g, '')
+                                             .replace(/'/g, "\\'")
+                                             .replace(/\\"/g, '"') + '\'';
+    return ctx.stylize(simple, 'string');
+  }
+  if (isNumber(value))
+    return ctx.stylize('' + value, 'number');
+  if (isBoolean(value))
+    return ctx.stylize('' + value, 'boolean');
+  // For some reason typeof null is "object", so special case here.
+  if (isNull(value))
+    return ctx.stylize('null', 'null');
+}
+
+
+function formatError(value) {
+  return '[' + Error.prototype.toString.call(value) + ']';
+}
+
+
+function formatArray(ctx, value, recurseTimes, visibleKeys, keys) {
+  var output = [];
+  for (var i = 0, l = value.length; i < l; ++i) {
+    if (hasOwnProperty(value, String(i))) {
+      output.push(formatProperty(ctx, value, recurseTimes, visibleKeys,
+          String(i), true));
+    } else {
+      output.push('');
+    }
+  }
+  keys.forEach(function(key) {
+    if (!key.match(/^\d+$/)) {
+      output.push(formatProperty(ctx, value, recurseTimes, visibleKeys,
+          key, true));
+    }
+  });
+  return output;
+}
+
+
+function formatProperty(ctx, value, recurseTimes, visibleKeys, key, array) {
+  var name, str, desc;
+  desc = Object.getOwnPropertyDescriptor(value, key) || { value: value[key] };
+  if (desc.get) {
+    if (desc.set) {
+      str = ctx.stylize('[Getter/Setter]', 'special');
+    } else {
+      str = ctx.stylize('[Getter]', 'special');
+    }
+  } else {
+    if (desc.set) {
+      str = ctx.stylize('[Setter]', 'special');
+    }
+  }
+  if (!hasOwnProperty(visibleKeys, key)) {
+    name = '[' + key + ']';
+  }
+  if (!str) {
+    if (ctx.seen.indexOf(desc.value) < 0) {
+      if (isNull(recurseTimes)) {
+        str = formatValue(ctx, desc.value, null);
+      } else {
+        str = formatValue(ctx, desc.value, recurseTimes - 1);
+      }
+      if (str.indexOf('\n') > -1) {
+        if (array) {
+          str = str.split('\n').map(function(line) {
+            return '  ' + line;
+          }).join('\n').substr(2);
+        } else {
+          str = '\n' + str.split('\n').map(function(line) {
+            return '   ' + line;
+          }).join('\n');
+        }
+      }
+    } else {
+      str = ctx.stylize('[Circular]', 'special');
+    }
+  }
+  if (isUndefined(name)) {
+    if (array && key.match(/^\d+$/)) {
+      return str;
+    }
+    name = JSON.stringify('' + key);
+    if (name.match(/^"([a-zA-Z_][a-zA-Z_0-9]*)"$/)) {
+      name = name.substr(1, name.length - 2);
+      name = ctx.stylize(name, 'name');
+    } else {
+      name = name.replace(/'/g, "\\'")
+                 .replace(/\\"/g, '"')
+                 .replace(/(^"|"$)/g, "'");
+      name = ctx.stylize(name, 'string');
+    }
+  }
+
+  return name + ': ' + str;
+}
+
+
+function reduceToSingleString(output, base, braces) {
+  var numLinesEst = 0;
+  var length = output.reduce(function(prev, cur) {
+    numLinesEst++;
+    if (cur.indexOf('\n') >= 0) numLinesEst++;
+    return prev + cur.replace(/\u001b\[\d\d?m/g, '').length + 1;
+  }, 0);
+
+  if (length > 60) {
+    return braces[0] +
+           (base === '' ? '' : base + '\n ') +
+           ' ' +
+           output.join(',\n  ') +
+           ' ' +
+           braces[1];
+  }
+
+  return braces[0] + base + ' ' + output.join(', ') + ' ' + braces[1];
+}
+
+
+// NOTE: These type checking functions intentionally don't use `instanceof`
+// because it is fragile and can be easily faked with `Object.create()`.
+function isArray(ar) {
+  return Array.isArray(ar);
+}
+exports.isArray = isArray;
+
+function isBoolean(arg) {
+  return typeof arg === 'boolean';
+}
+exports.isBoolean = isBoolean;
+
+function isNull(arg) {
+  return arg === null;
+}
+exports.isNull = isNull;
+
+function isNullOrUndefined(arg) {
+  return arg == null;
+}
+exports.isNullOrUndefined = isNullOrUndefined;
+
+function isNumber(arg) {
+  return typeof arg === 'number';
+}
+exports.isNumber = isNumber;
+
+function isString(arg) {
+  return typeof arg === 'string';
+}
+exports.isString = isString;
+
+function isSymbol(arg) {
+  return typeof arg === 'symbol';
+}
+exports.isSymbol = isSymbol;
+
+function isUndefined(arg) {
+  return arg === void 0;
+}
+exports.isUndefined = isUndefined;
+
+function isRegExp(re) {
+  return isObject(re) && objectToString(re) === '[object RegExp]';
+}
+exports.isRegExp = isRegExp;
+
+function isObject(arg) {
+  return typeof arg === 'object' && arg !== null;
+}
+exports.isObject = isObject;
+
+function isDate(d) {
+  return isObject(d) && objectToString(d) === '[object Date]';
+}
+exports.isDate = isDate;
+
+function isError(e) {
+  return isObject(e) &&
+      (objectToString(e) === '[object Error]' || e instanceof Error);
+}
+exports.isError = isError;
+
+function isFunction(arg) {
+  return typeof arg === 'function';
+}
+exports.isFunction = isFunction;
+
+function isPrimitive(arg) {
+  return arg === null ||
+         typeof arg === 'boolean' ||
+         typeof arg === 'number' ||
+         typeof arg === 'string' ||
+         typeof arg === 'symbol' ||  // ES6 symbol
+         typeof arg === 'undefined';
+}
+exports.isPrimitive = isPrimitive;
+
+exports.isBuffer = require('./support/isBuffer');
+
+function objectToString(o) {
+  return Object.prototype.toString.call(o);
+}
+
+
+function pad(n) {
+  return n < 10 ? '0' + n.toString(10) : n.toString(10);
+}
+
+
+var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep',
+              'Oct', 'Nov', 'Dec'];
+
+// 26 Feb 16:19:34
+function timestamp() {
+  var d = new Date();
+  var time = [pad(d.getHours()),
+              pad(d.getMinutes()),
+              pad(d.getSeconds())].join(':');
+  return [d.getDate(), months[d.getMonth()], time].join(' ');
+}
+
+
+// log is just a thin wrapper to console.log that prepends a timestamp
+exports.log = function() {
+  console.log('%s - %s', timestamp(), exports.format.apply(exports, arguments));
+};
+
+
+/**
+ * Inherit the prototype methods from one constructor into another.
+ *
+ * The Function.prototype.inherits from lang.js rewritten as a standalone
+ * function (not on Function.prototype). NOTE: If this file is to be loaded
+ * during bootstrapping this function needs to be rewritten using some native
+ * functions as prototype setup using normal JavaScript does not work as
+ * expected during bootstrapping (see mirror.js in r114903).
+ *
+ * @param {function} ctor Constructor function which needs to inherit the
+ *     prototype.
+ * @param {function} superCtor Constructor function to inherit prototype from.
+ */
+exports.inherits = require('inherits');
+
+exports._extend = function(origin, add) {
+  // Don't do anything if add isn't an object
+  if (!add || !isObject(add)) return origin;
+
+  var keys = Object.keys(add);
+  var i = keys.length;
+  while (i--) {
+    origin[keys[i]] = add[keys[i]];
+  }
+  return origin;
+};
+
+function hasOwnProperty(obj, prop) {
+  return Object.prototype.hasOwnProperty.call(obj, prop);
+}
+
+}).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{"./support/isBuffer":187,"_process":49,"inherits":38}]},{},[4]);
