@@ -1,0 +1,24 @@
+{
+  "name": "test_modules",
+  "version": "1.0.0",
+  "description": "Simple visualization of medical data with node/reactjs and HBase running atop Hadoop.",
+  "main": "nodeHello.js",
+  "scripts": {
+    "test": "node nodeHello.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/vivekdtiwari/Healthcare-visualization.git"
+  },
+  "keywords": [
+    "Node",
+    "React",
+    "HBase"
+  ],
+  "author": "Vivek Tiwari",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/vivekdtiwari/Healthcare-visualization/issues"
+  },
+  "homepage": "https://github.com/vivekdtiwari/Healthcare-visualization#readme"
+}
