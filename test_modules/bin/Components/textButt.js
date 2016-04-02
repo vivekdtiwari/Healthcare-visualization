@@ -1,25 +1,26 @@
-var React = require('react')
-var HBase = require('node-thrift-hbase');
-
-k
+var React = require('react');
+var $ = require('jQuery');
 
 module.exports = React.createClass({displayName: "exports",
   getInitialState: function() {
-    return {liked: false};
+    return {liked: false, showData:"Empty Currently. First Load"};
   },
   handleClick: function(event){
     this.setState({liked: !this.state.liked});
+    var kk = this;
     var tableName = document.getElementById('hbaseTableName').value;
     var columnFamily = document.getElementById('columnFamily').value;
     var columnName = document.getElementById('columnName').value;
     var rowNum = document.getElementById('rowNum').value;
-    var get = hbaseClient.Get('1');
-    get.add('cf','a');
+    $.get('/hbaseCall',function(data){
+      kk.setState({showData : JSON.stringify(data)});
+    })
 
   },
   render: function() {
     var text = this.state.liked ? 'like' : 'haven\'t liked';
     var buttText = this.state.liked ? 'Unlike':'Like';
+    var jsonresp = this.state.showData;
     return (
       React.createElement("div", {id: "meh", className: "container"}, 
       React.createElement("div", {className: "form-group"}, 
@@ -37,7 +38,11 @@ module.exports = React.createClass({displayName: "exports",
       React.createElement("p", null, 
         "You ", text, " this. Click to toggle."
       ), 
-      React.createElement("button", {className: "btn btn-default", onClick: this.handleClick}, buttText)
+      React.createElement("button", {className: "btn btn-default", onClick: this.handleClick}, buttText), 
+      React.createElement("p", null, 
+      React.createElement("strong", null, "Response from HBase shown here."), React.createElement("br", null), 
+      jsonresp
+      )
       )
     );
   }
