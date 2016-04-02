@@ -22,6 +22,7 @@
   },
   "homepage": "https://github.com/vivekdtiwari/Healthcare-visualization#readme",
   "devDependencies": {
+    "browserify": "^13.0.0",
     "fs": "0.0.2",
     "gulp": "^3.9.1",
     "gulp-nodemon": "^2.0.6",
@@ -29,5 +30,8 @@
     "gulp-watch": "^4.3.5",
     "http": "0.0.0",
     "react": "^0.14.8"
+  },
+  "dependencies": {
+    "express": "^4.13.4"
   }
 }
