@@ -1,4 +1,5 @@
 var React = require('react')
+  , Layout = require('./Components/Layout')
   , HelloWorld = require('./Components/HelloWorld')
   , express = require('express')
   , path = require('path')
@@ -10,18 +11,12 @@ app.use('/pages',
 
 app.get('/', function (req, res) {
   res.writeHead(200, {'Content-Type': 'text/html'})
-  var html = React.renderToString(
-    <html>
-      <head>
-        <title>Hello World</title>
-      </head>
-      <body>
-        <HelloWorld from="server.jsx running on the server" />
-        <div id="reactContainer" />
-        <div id="reactHelloContainer"></div>
-      </body>
-      <script src="/pages/index.js"></script>
-    </html>)
+  var content = React.renderToString(
+    <HelloWorld from = "server.jsx, running on the server" />
+  )
+  var html = React.renderToStaticMarkup(
+    <Layout content={content} />
+  )
 
     res.end(html)
 })
