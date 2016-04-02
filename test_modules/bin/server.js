@@ -20,13 +20,14 @@ app.use('/pages',
 
 
 app.get('/hbaseCall',function(req,res){
-  console.log("fuccckinnggg servere callll !!!!");
+  console.log("Congrats!!!! You finally reached the server side x.x");
+  console.log(req.query.columnFamily);
   var hbaseClient = HBase.client(config);
-  var get = hbaseClient.Get('1');
-  get.add('cf','a');
-  console.log("now gonna call");
-  hbaseClient.get('test',get,function(err,data){
-    console.log("Restult from server");
+  var get = hbaseClient.Get(req.query.rowNum);
+  get.add(req.query.columnFamily,req.query.columnName);
+  console.log("now gonna call Hbase");
+  hbaseClient.get(req.query.tableName,get,function(err,data){
+    console.log("Result from server");
     if(err){
       console.log('error:',err);
       return;

@@ -12,7 +12,7 @@ module.exports = React.createClass({displayName: "exports",
     var columnFamily = document.getElementById('columnFamily').value;
     var columnName = document.getElementById('columnName').value;
     var rowNum = document.getElementById('rowNum').value;
-    $.get('/hbaseCall',function(data){
+    $.get('/hbaseCall',{'tableName':tableName,'columnFamily':columnFamily,'columnName':columnName,'rowNum':rowNum},function(data){
       kk.setState({showData : JSON.stringify(data)});
     })
 
