@@ -8,11 +8,10 @@ module.exports = React.createClass({
     return (
       <div>
         <div>
-          This is from the HelloWorld.jsx
-          component render function.
+          <h3>Health-Care Data Visualization using HBase, ReactJS and NodeJS</h3>
         </div>
         <div>
-          Rendered from: {this.state.from}
+          Start-up message : {this.state.from}
         </div>
       </div>
     )

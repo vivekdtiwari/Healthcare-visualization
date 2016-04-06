@@ -11,7 +11,11 @@ module.exports = React.createClass({displayName: "exports",
               React.createElement("div", {id: "reactContainer"}), 
               React.createElement("div", {id: "reactHelloContainer", 
                   dangerouslySetInnerHTML:  {__html: this.props.content} }), 
-              React.createElement("div", {id: "textButtonId"})
+              React.createElement("div", {id: "textButtonId"}), 
+              React.createElement("div", {id: "barChartId"}), 
+              React.createElement("div", {className: "container"}, 
+                React.createElement("div", {id: "minRenderId"})
+              )
           ), 
           React.createElement("script", {src: "/pages/index.js"})
       )

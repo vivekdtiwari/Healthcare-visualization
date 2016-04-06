@@ -40,7 +40,7 @@ app.get('/hbaseCall',function(req,res){
 app.get('/', function (req, res) {
   res.writeHead(200, {'Content-Type': 'text/html'})
   var content = React.renderToString(
-    <HelloWorld from = "server.jsx, running on the server" />
+    <HelloWorld from = "Welcome to Mini-Project !!!" />
   )
   var html = React.renderToStaticMarkup(
     <Layout content={content}/>

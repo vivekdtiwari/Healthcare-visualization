@@ -12,6 +12,10 @@ module.exports = React.createClass({
               <div id="reactHelloContainer"
                   dangerouslySetInnerHTML={ {__html: this.props.content} } />
               <div id="textButtonId" />
+              <div id="barChartId" />
+              <div className="container">
+                <div id="minRenderId" />
+              </div>
           </body>
           <script src="/pages/index.js"></script>
       </html>

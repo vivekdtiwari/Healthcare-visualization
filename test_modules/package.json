@@ -34,6 +34,8 @@
     "navigator": "^1.0.1",
     "node-thrift-hbase": "^0.12.1",
     "react": "^0.14.8",
+    "react-dom": "^0.14.8",
+    "react-google-charts": "^0.2.1",
     "xmlhttprequest": "^1.8.0"
   },
   "dependencies": {
