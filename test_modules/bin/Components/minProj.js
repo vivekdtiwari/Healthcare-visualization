@@ -1,6 +1,8 @@
 var React = require('react');
+var ReactDOM = require('react-dom');
 var $ = require('jQuery');
 var BarChart = require('../Components/chartingModule');
+var RegressionFunc = require('../Components/regression');
 var dictMap = {};
 
 var DataFilter = React.createClass({displayName: "DataFilter",
@@ -40,12 +42,36 @@ var DataFilter = React.createClass({displayName: "DataFilter",
 });
 
 var ChartRender = React.createClass({displayName: "ChartRender",
+  getInitialState:function(){
+    return {
+      'xAxis':[],
+      'yAxis':[]
+    }
+  },
+  setAxis:function(xAxis,yAxis){
+    var RenderObj = RegressionFunc(yAxis,xAxis);
+    RenderObj.slope=RenderObj.slope.toPrecision(2);
+    ReactDOM.render(
+      React.createElement("div", null, 
+      React.createElement("h5", null, "Regression Statistics"), React.createElement("br", null), 
+      React.createElement("div", null, React.createElement("strong", null, "Slope : ", RenderObj.slope, React.createElement("br", null), "Intercept : ", RenderObj.intercept, React.createElement("br", null), " R-squared(Co-efficient of Determination) : ", RenderObj.r2, " "))
+      ),
+      document.getElementById('regressionStat')
+    )
+  },
   render : function(){
+    console.log("regressss");
+    console.log(this.props.regressionVal);
+    var RegObj = RegressionFunc(this.props.regressionVal.xAxis,this.props.regressionVal.yAxis);
+    console.log(RegObj.slope);
     return (
       React.createElement("div", {className: "panel panel-default"}, 
         React.createElement("div", {className: "panel-heading"}, "Heading comes here !!! "), 
         React.createElement("div", {className: "panel-body"}, 
-        React.createElement(BarChart, {plotData: this.props.plotData})
+        React.createElement(BarChart, {plotData: this.props.plotData, updateAxis: this.setAxis})
+        ), 
+        React.createElement("div", {className: "panel-footer", id: "regressionStat"}, 
+          "Regression Statistics shown here !"
         )
       )
     )
@@ -57,8 +83,10 @@ var MinRender = React.createClass({displayName: "MinRender",
     return {
       hbaseData : {
         data : [],
-        xAxis : [],
-        yAxis : []
+        xAxis : [1, 2, 3, 4],
+        yAxis : [5.2, 5.7, 5.0, 4.2],
+        fallbackLower : '',
+        fallbackUpper : ''
       }
     }
   },
@@ -67,13 +95,16 @@ var MinRender = React.createClass({displayName: "MinRender",
     console.log(this.state.hbaseData);
   },
   render : function(){
+    console.log(this.state.hbaseData);
     return (
       React.createElement("div", null, 
         React.createElement(DataFilter, {
         testList: this.props.testNames, 
         updateState: this.handleState}
         ), 
-        React.createElement(ChartRender, {plotData: this.state.hbaseData})
+        React.createElement(ChartRender, {
+        plotData: this.state.hbaseData, 
+        regressionVal: this.state.hbaseData})
       )
     )
   }
