@@ -55,6 +55,7 @@ var BarCharts = React.createClass({displayName: "BarCharts",
 	},
 	componentDidMount: function() {
     console.log(d3);
+
 		var BarChart = {
 			data : BarChartData.dataArray,
 			options: BarChartData.options,
@@ -75,29 +76,25 @@ var BarCharts = React.createClass({displayName: "BarCharts",
 		});
 
 	},
-
+  shouldComponentUpdate:function(){
+    if(this.props.plotData.data.length>0){
+      console.log("proceed chart modify");
+      var tempArr = this.props.plotData.data;
+      var d3Nest = d3.nest()
+      .key(function(d){
+        return monthFormat(new Date(d.reportDate))})
+      .rollup(function(d){
+        console.log(d);
+      })
+      .entries(tempArr);
+    }
+    return true;
+  },
 	render: function() {
-    console.log("dsdfff");
-    var tempArr = [];
-    tempArr = this.props.plotData;
-    console.log(tempArr.data);
-    console.log(tempArr.data.length);
-  /*  if(this.props.plotData.length>0){
-      console.log("charting module got new data");
-      console.log(this.props.plotData);
-      //Begin restructuring data
-      /*var dataIteration = this.props.plotData;
-      var positive = 0;
-      var negative = 0;
-      for(var entry in dataIteration){
-        if(dataIteration[entry][])
-      }*/
-      //set this.state.BarChart.data = this.props.plotData
-  //  }
 		return (
 			React.createElement("div", {className: "Examples"}, 
 				React.createElement("h3", null, " Bar Chart "), 
-				React.createElement(Chart, {chartType: this.state.BarChart.chartType, width: "100%", height: "100%", data: this.state.BarChart.data, options: this.state.BarChart.options, graph_id: this.state.BarChart.div_id})
+				React.createElement(Chart, {chartType: this.state.BarChart.chartType, width: "100%", height: "500px", data: this.state.BarChart.data, options: this.state.BarChart.options, graph_id: this.state.BarChart.div_id})
 			)
 		);
 	}
