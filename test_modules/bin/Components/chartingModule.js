@@ -74,7 +74,9 @@ var BarCharts = React.createClass({displayName: "BarCharts",
 	},
 
 	render: function() {
-    console.log(this.props.plotData[1]);
+    if(this.props.plotData!=[]){
+      //set this.state.BarChart.data = this.props.plotData
+    }
 		return (
 			React.createElement("div", {className: "Examples"}, 
 				React.createElement("h3", null, " Bar Chart "), 
