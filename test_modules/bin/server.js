@@ -29,8 +29,8 @@ app.get('/hbaseCall',function(req,res){
   var scan = hbaseClient.Scan();
   scan.addStartRow('1');
   scan.addStopRow('700300');
-  scan.add('339');
-  scan.addNumRows(2000);
+  scan.add(req.query.colFam);
+  scan.addNumRows(100000);
 
   hbaseClient.scan('medData',scan,function(err,data){ //get users table
     console.log("Response from HBase received");
@@ -38,9 +38,36 @@ app.get('/hbaseCall',function(req,res){
          console.log('error:',err);
          return;
      }
-  //    console.log(err,data[0].columnValues);
+
+  var xAxis =[];
+  var yAxis= [];
+  var chartData = [];
+  for(i in data){
+    var colVals = data[i].columnValues;
+    var date = false;
+    var arrElem = {};
+    for (j in colVals){
+      if(colVals[j].qualifier == 'reportDate'){
+        arrElem['reportDate']=((new Date(colVals[j].value)).toISOString());
+        xAxis.push((new Date(colVals[j].value)).valueOf());
+        date = true;
+      }
+      if(date && colVals[j].qualifier == 'value'){
+        arrElem['value']=(colVals[j].value);
+        yAxis.push(colVals[j].value);
+        date = false;
+      }
+      if(colVals[j].qualifier == 'lowerBound'){
+        arrElem['lowerBound']=colVals[j].value;
+      }
+      if(colVals[j].qualifier == 'upperBound'){
+        arrElem['upperBound']=colVals[j].value;
+      }
+    }
+    chartData.push(arrElem);
+  }
     res.writeHead(200,{'Content-Type': 'application/json'});
-    res.end(data);
+    res.end(JSON.stringify({'data':chartData,'xAxis':xAxis,'yAxis':yAxis}));
   });
 })
 app.get('/', function (req, res) {

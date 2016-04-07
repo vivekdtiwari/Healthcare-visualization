@@ -75,6 +75,13 @@ var BarCharts = React.createClass({
 
 	render: function() {
     if(this.props.plotData!=[]){
+      //Begin restructuring data
+      var dataIteration = this.props.plotData;
+      var positive = 0;
+      var negative = 0;
+      for(var entry in dataIteration){
+        var lower = dataIteration
+      }
       //set this.state.BarChart.data = this.props.plotData
     }
 		return (
