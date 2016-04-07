@@ -12,7 +12,7 @@ var DataFilter = React.createClass({displayName: "DataFilter",
         //We can proceed HBase Call with a valid dictionaryId
         var kk = this;
         $.get('/hbaseCall',{'colFam':queryDict},function(data){
-
+          console.log(data);
           kk.props.updateState(data);
         });
       } else {
@@ -56,13 +56,17 @@ var ChartRender = React.createClass({displayName: "ChartRender",
 var MinRender = React.createClass({displayName: "MinRender",
   getInitialState:function(){
     return {
-      hbaseData : []
+      hbaseData : {}
     }
   },
   handleState: function(dataArray){
+    console.log(dataArray);
     this.setState({hbaseData:dataArray});
+    console.log(this.state.hbaseData);
   },
   render : function(){
+    console.log("re-render");
+    console.log(this.state.hbaseData);
     return (
       React.createElement("div", null, 
         React.createElement(DataFilter, {
