@@ -42,6 +42,7 @@ app.get('/hbaseCall',function(req,res){
   var xAxis =[];
   var yAxis= [];
   var chartData = [];
+  var fallbackLower=99999999, fallbackUpper=-99999999;
   for(i in data){
     var colVals = data[i].columnValues;
     var date = false;
@@ -58,16 +59,22 @@ app.get('/hbaseCall',function(req,res){
         date = false;
       }
       if(colVals[j].qualifier == 'lowerBound'){
-        arrElem['lowerBound']=colVals[j].value;
+        if(!isNaN(colVals[j].value) && Number(colVals[j].value)<fallbackLower){
+          fallbackLower = Number(colVals[j].value);
+        }
+          arrElem['lowerBound']=colVals[j].value;
       }
       if(colVals[j].qualifier == 'upperBound'){
+        if(!isNaN(colVals[j].value) && Number(colVals[j].value)>fallbackUpper){
+          fallbackUpper = Number(colVals[j].value);
+        }
         arrElem['upperBound']=colVals[j].value;
       }
     }
     chartData.push(arrElem);
   }
     res.writeHead(200,{'Content-Type': 'application/json'});
-    res.end(JSON.stringify({'data':chartData,'xAxis':xAxis,'yAxis':yAxis}));
+    res.end(JSON.stringify({'data':chartData,'xAxis':xAxis,'yAxis':yAxis,'fallbackLower':fallbackLower,'fallbackUpper':fallbackUpper}));
   });
 })
 app.get('/', function (req, res) {
