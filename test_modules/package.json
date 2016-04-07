@@ -23,6 +23,8 @@
   "homepage": "https://github.com/vivekdtiwari/Healthcare-visualization#readme",
   "devDependencies": {
     "browserify": "^13.0.0",
+    "d3": "^3.5.16",
+    "d3-react": "^1.0.4",
     "fs": "0.0.2",
     "gulp": "^3.9.1",
     "gulp-nodemon": "^2.0.6",
@@ -34,6 +36,7 @@
     "navigator": "^1.0.1",
     "node-thrift-hbase": "^0.12.1",
     "react": "^0.14.8",
+    "react-d3-components": "^0.6.2",
     "react-dom": "^0.14.8",
     "react-google-charts": "^0.2.1",
     "xmlhttprequest": "^1.8.0"

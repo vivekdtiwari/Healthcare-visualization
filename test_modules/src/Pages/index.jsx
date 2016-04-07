@@ -5,6 +5,7 @@ var Timestamp = require('../Components/Timestamp')
 var TextButton = require('../Components/textButt')
 var BarChartMod = require('../Components/chartingModule')
 var MinRender = require('../Components/minProj')
+var DictList = require('../Components/dictionaryData');
 
 
 var helloWorldElement = ReactDOM.render(
@@ -28,7 +29,7 @@ var barChartElement = ReactDOM.render(
 )
 */
 var minRenderElement = ReactDOM.render(
-  <MinRender />,
+  <MinRender testNames={DictList}/>,
   document.getElementById('minRenderId')
 )
 /*

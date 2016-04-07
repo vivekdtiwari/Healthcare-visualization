@@ -4,6 +4,7 @@ module.exports = React.createClass({
     return (
       <html>
           <head>
+              <meta charSet="utf-8" />
               <link href="https://bootswatch.com/paper/bootstrap.min.css" type="text/css" rel="stylesheet"/>
               <title>Hello World</title>
           </head>

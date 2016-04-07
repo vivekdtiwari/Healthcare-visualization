@@ -4,6 +4,7 @@ module.exports = React.createClass({displayName: "exports",
     return (
       React.createElement("html", null, 
           React.createElement("head", null, 
+              React.createElement("meta", {charSet: "utf-8"}), 
               React.createElement("link", {href: "https://bootswatch.com/paper/bootstrap.min.css", type: "text/css", rel: "stylesheet"}), 
               React.createElement("title", null, "Hello World")
           ), 

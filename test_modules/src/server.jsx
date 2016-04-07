@@ -5,6 +5,10 @@ var React = require('react')
   , path = require('path')
   , HBase = require('node-thrift-hbase');
 
+//hangout copy
+//hangout end
+
+
 var app = express()
 
 app.use('/pages',
@@ -20,21 +24,23 @@ app.use('/pages',
 
 
 app.get('/hbaseCall',function(req,res){
-  console.log("Congrats!!!! You finally reached the server side x.x");
-  console.log(req.query.columnFamily);
+  console.log("Server Side method : ");
   var hbaseClient = HBase.client(config);
-  var get = hbaseClient.Get(req.query.rowNum);
-  get.add(req.query.columnFamily,req.query.columnName);
-  console.log("now gonna call Hbase");
-  hbaseClient.get(req.query.tableName,get,function(err,data){
-    console.log("Result from server");
-    if(err){
-      console.log('error:',err);
-      return;
-    }
-    console.log(err,data);
+  var scan = hbaseClient.Scan();
+  scan.addStartRow('1');
+  scan.addStopRow('700300');
+  scan.add('339');
+  scan.addNumRows(2000);
+
+  hbaseClient.scan('medData',scan,function(err,data){ //get users table
+    console.log("Response from HBase received");
+     if(err){
+         console.log('error:',err);
+         return;
+     }
+  //    console.log(err,data[0].columnValues);
     res.writeHead(200,{'Content-Type': 'application/json'});
-    res.end(JSON.stringify(data));
+    res.end(data);
   });
 })
 app.get('/', function (req, res) {
